@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import ClinicalHeader from "@/components/ClinicalHeader";
 import ClinicalFooter from "@/components/ClinicalFooter";
-import FollowupTracker from "@/components/FollowUpTracker";
+import FollowUpTracker from "@/components/FollowUpTracker";
 import {
   RiskBadge,
   StatCard,
@@ -1211,7 +1211,7 @@ export default function Dashboard() {
           className="motion-enter"
           style={{ marginBottom: 20, animationDelay: "120ms" }}
         >
-          <FollowupTracker />
+          <FollowUpTracker />
         </div>
 
         {/* ── Full patient registry ─────────────────────────────────────── */}

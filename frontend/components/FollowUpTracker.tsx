@@ -13,7 +13,7 @@ interface FollowupStats {
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
-export default function FollowupTracker() {
+export default function FollowUpTracker() {
   const [stats,   setStats]   = useState<FollowupStats | null>(null)
   const [loading, setLoading] = useState(true)
 

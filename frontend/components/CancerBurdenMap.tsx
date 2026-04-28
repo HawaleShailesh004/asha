@@ -134,7 +134,6 @@ const ISO_MAP: Record<string, string> = {
   "562": "NER",
   "204": "BEN",
   "768": "TGO",
-  "288": "GHA",
   "384": "CIV",
   "276": "LBR",
   "624": "GNB",
@@ -464,8 +463,8 @@ export default function CancerBurdenMap({
         style={{ width: "100%", height: "100%" }}
       >
         <Geographies geography={GEO_URL}>
-          {({ geographies }) =>
-            geographies.filter(isInRegion).map((geo) => {
+          {({ geographies }: { geographies: any[] }) =>
+            geographies.filter(isInRegion).map((geo: any) => {
               const id = geo.id?.toString().padStart(3, "0");
               const iso = ISO_MAP[id] || "";
               const isHovered = hoveredIso === iso;
@@ -482,7 +481,7 @@ export default function CancerBurdenMap({
                     hover: { outline: "none", cursor: "pointer" },
                     pressed: { outline: "none" },
                   }}
-                  onMouseEnter={(e) => {
+                  onMouseEnter={(e: any) => {
                     setHovered(iso);
                     const containerRect = (e.target as SVGElement)
                       .closest("[data-map]")
