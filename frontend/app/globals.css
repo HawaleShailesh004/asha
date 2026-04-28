@@ -1,0 +1,720 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Inter:wght@300;400;500;600&display=swap');
+
+/* ═══════════════════════════════════════════════════════════════════
+   DARK THEME - Landing page, Chat interface
+   Applied by default. These pages use inline dark styles.
+═══════════════════════════════════════════════════════════════════ */
+:root {
+  /* Backgrounds */
+  --bg: #0a0e14;
+  --surface: #111620;
+  --surface-2: #161c28;
+  --surface-3: #1c2333;
+
+  /* Borders */
+  --border: rgba(255, 255, 255, 0.07);
+  --border-mid: rgba(255, 255, 255, 0.12);
+  --border-hi: rgba(255, 255, 255, 0.18);
+
+  /* Text */
+  --text-1: #e8eaf0;
+  --text-2: #8892a4;
+  --text-3: #4a5568;
+
+  /* Brand */
+  --teal: #00d4a0;
+  --teal-dim: rgba(0, 212, 160, 0.12);
+  --teal-border: rgba(0, 212, 160, 0.25);
+
+  /* Risk */
+  --high: #ff4757;
+  --high-bg: rgba(255, 71, 87, 0.10);
+  --high-border: rgba(255, 71, 87, 0.30);
+  --elevated: #ffa502;
+  --elevated-bg: rgba(255, 165, 2, 0.10);
+  --elevated-border: rgba(255, 165, 2, 0.30);
+  --low: #2ed573;
+  --low-bg: rgba(46, 213, 115, 0.08);
+  --low-border: rgba(46, 213, 115, 0.25);
+
+  /* Blue accent */
+  --blue: #4e9eff;
+  --blue-bg: rgba(78, 158, 255, 0.10);
+
+  /* Motion tokens */
+  --motion-fast: 140ms;
+  --motion-base: 220ms;
+  --motion-slow: 360ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CLINICAL LIGHT THEME - Dashboard, Patients, Survivorship
+   Applied via .clinical class on the root div of each page.
+   Modeled on WHO/UNICEF design principles:
+   - High contrast for readability in bright conditions
+   - Light background = clinical trust, not developer aesthetic
+   - Traffic light metaphors for risk (universally understood)
+   - Lean for slow connections (no heavy gradients or blur)
+═══════════════════════════════════════════════════════════════════ */
+.clinical {
+  /* Backgrounds */
+  --cl-bg: #f8fafc;
+  /* slate-50: off-white, easier on eyes */
+  --cl-surface: #ffffff;
+  /* pure white cards */
+  --cl-surface-2: #f1f5f9;
+  /* subtle alternate surface */
+  --cl-surface-3: #e2e8f0;
+  /* hover states */
+
+  /* Borders */
+  --cl-border: #e2e8f0;
+  /* slate-200 */
+  --cl-border-mid: #cbd5e1;
+  /* slate-300 */
+  --cl-border-hi: #94a3b8;
+  /* slate-400 */
+
+  /* Text */
+  --cl-text-1: #0f172a;
+  /* slate-900: max contrast */
+  --cl-text-2: #334155;
+  /* slate-700 */
+  --cl-text-3: #64748b;
+  /* slate-500 */
+  --cl-text-4: #94a3b8;
+  /* slate-400: captions */
+
+  /* Brand - clinical forest green */
+  --cl-primary: #166534;
+  /* green-800 */
+  --cl-primary-mid: #15803d;
+  /* green-700 */
+  --cl-primary-lt: #dcfce7;
+  /* green-100 */
+  --cl-primary-bg: #f0fdf4;
+  /* green-50 */
+
+  /* Risk - accessible on white */
+  --cl-high: #dc2626;
+  /* red-600 */
+  --cl-high-bg: #fef2f2;
+  /* red-50 */
+  --cl-high-border: #fecaca;
+  /* red-200 */
+  --cl-high-mid: #ef4444;
+  /* red-500 */
+
+  --cl-elevated: #d97706;
+  /* amber-600 */
+  --cl-elev-bg: #fffbeb;
+  /* amber-50 */
+  --cl-elev-border: #fde68a;
+  /* amber-200 */
+
+  --cl-low: #16a34a;
+  /* green-600 */
+  --cl-low-bg: #f0fdf4;
+  /* green-50 */
+  --cl-low-border: #bbf7d0;
+  /* green-200 */
+
+  /* Blue accent */
+  --cl-blue: #2563eb;
+  /* blue-600 */
+  --cl-blue-bg: #eff6ff;
+  /* blue-50 */
+  --cl-blue-border: #bfdbfe;
+  /* blue-200 */
+
+  /* Shadows */
+  --cl-shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --cl-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.08), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+  --cl-shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+  --cl-shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+
+  /* Applied styles */
+  background: var(--cl-bg);
+  color: var(--cl-text-1);
+  font-family: 'DM Sans', 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* Shared motion utility classes */
+.motion-enter {
+  animation: cl-fadeUp var(--motion-base) var(--ease-emphasized) both;
+}
+
+.motion-enter-fast {
+  animation-duration: var(--motion-fast);
+}
+
+.motion-enter-slow {
+  animation-duration: var(--motion-slow);
+}
+
+.route-transition {
+  animation: pageFade var(--motion-base) var(--ease-standard) both;
+}
+
+.route-transition-fast {
+  animation-duration: var(--motion-fast);
+}
+
+.route-transition-slow {
+  animation-duration: var(--motion-slow);
+}
+
+.motion-pressable {
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard),
+    background-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
+}
+
+.motion-pressable:active {
+  transform: translateY(1px) scale(0.995);
+}
+
+.modal-overlay-enter {
+  animation: overlayIn var(--motion-base) var(--ease-standard) both;
+}
+
+.modal-panel-enter {
+  animation: panelIn var(--motion-base) var(--ease-emphasized) both;
+}
+
+.modal-panel-enter-fast {
+  animation-duration: var(--motion-fast);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   GLOBAL BASE
+═══════════════════════════════════════════════════════════════════ */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text-1);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+.font-serif {
+  font-family: 'Instrument Serif', Georgia, serif;
+}
+
+.font-mono {
+  font-family: 'DM Mono', 'Courier New', monospace;
+}
+
+.font-inter {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   CLINICAL COMPONENT UTILITIES
+   Use these inside .clinical scoped pages
+═══════════════════════════════════════════════════════════════════ */
+
+/* Card */
+.cl-card {
+  background: var(--cl-surface);
+  border: 1px solid var(--cl-border);
+  border-radius: 12px;
+  box-shadow: var(--cl-shadow);
+}
+
+.cl-card-hover {
+  transition:
+    box-shadow var(--motion-fast) var(--ease-standard),
+    transform var(--motion-fast) var(--ease-standard);
+}
+
+.cl-card-hover:hover {
+  box-shadow: var(--cl-shadow-md);
+  transform: translateY(-1px);
+}
+
+/* Risk tier pills */
+.cl-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid;
+}
+
+.cl-badge-high {
+  color: var(--cl-high);
+  background: var(--cl-high-bg);
+  border-color: var(--cl-high-border);
+}
+
+.cl-badge-elevated {
+  color: var(--cl-elevated);
+  background: var(--cl-elev-bg);
+  border-color: var(--cl-elev-border);
+}
+
+.cl-badge-low {
+  color: var(--cl-low);
+  background: var(--cl-low-bg);
+  border-color: var(--cl-low-border);
+}
+
+.cl-badge-blue {
+  color: var(--cl-blue);
+  background: var(--cl-blue-bg);
+  border-color: var(--cl-blue-border);
+}
+
+/* Clinical header */
+.cl-header {
+  background: var(--cl-surface);
+  border-bottom: 1px solid var(--cl-border);
+  box-shadow: var(--cl-shadow-sm);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+/* Section label */
+.cl-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cl-text-3);
+}
+
+/* Stat figure */
+.cl-stat {
+  font-family: 'DM Mono', monospace;
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--cl-text-1);
+  line-height: 1;
+}
+
+/* Divider */
+.cl-divider {
+  border: none;
+  border-top: 1px solid var(--cl-border);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SCROLLBARS
+═══════════════════════════════════════════════════════════════════ */
+.clinical ::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.clinical ::-webkit-scrollbar-track {
+  background: var(--cl-surface-2);
+}
+
+.clinical ::-webkit-scrollbar-thumb {
+  background: var(--cl-border-mid);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ANIMATIONS - DARK THEME
+═══════════════════════════════════════════════════════════════════ */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulseBorder {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--high-glow), 0 0 0 1px var(--high-border);
+  }
+
+  50% {
+    box-shadow: 0 0 0 4px var(--high-glow), 0 0 0 1px var(--high-border);
+  }
+}
+
+@keyframes pulseDot {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: scale(0.85);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -400% 0;
+  }
+
+  100% {
+    background-position: 400% 0;
+  }
+}
+
+@keyframes scanLine {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 0.05;
+  }
+
+  90% {
+    opacity: 0.05;
+  }
+
+  100% {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+}
+
+@keyframes bounce {
+
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+  }
+
+  30% {
+    transform: translateY(-5px);
+  }
+}
+
+/* ── ANIMATIONS - CLINICAL THEME ── */
+@keyframes cl-fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cl-slideRight {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes cl-shimmer {
+  0% {
+    background-position: -400% 0;
+  }
+
+  100% {
+    background-position: 400% 0;
+  }
+}
+
+@keyframes cl-pulseHigh {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.15);
+  }
+
+  50% {
+    box-shadow: 0 0 0 6px rgba(220, 38, 38, 0);
+  }
+}
+
+@keyframes pageFade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes overlayIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes panelIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.99);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes urgentPulse {
+
+  0%,
+  100% {
+    border-color: var(--cl-high-border);
+  }
+
+  50% {
+    border-color: var(--cl-high);
+  }
+}
+
+.fade-up {
+  animation: fadeUp 0.35s ease-out both;
+}
+
+.slide-in {
+  animation: slideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.live-dot {
+  animation: pulseDot 2s ease-in-out infinite;
+}
+
+.cl-fade-up {
+  animation: cl-fadeUp 0.3s ease-out both;
+}
+
+.cl-slide-right {
+  animation: cl-slideRight 0.3s ease-out both;
+}
+
+.cl-urgent-pulse {
+  animation: urgentPulse 2.5s ease-in-out infinite;
+}
+
+/* Stagger children */
+.fade-up:nth-child(1) {
+  animation-delay: 0ms;
+}
+
+.fade-up:nth-child(2) {
+  animation-delay: 60ms;
+}
+
+.fade-up:nth-child(3) {
+  animation-delay: 120ms;
+}
+
+.fade-up:nth-child(4) {
+  animation-delay: 180ms;
+}
+
+.cl-fade-up:nth-child(1) {
+  animation-delay: 0ms;
+}
+
+.cl-fade-up:nth-child(2) {
+  animation-delay: 50ms;
+}
+
+.cl-fade-up:nth-child(3) {
+  animation-delay: 100ms;
+}
+
+.cl-fade-up:nth-child(4) {
+  animation-delay: 150ms;
+}
+
+.cl-fade-up:nth-child(5) {
+  animation-delay: 200ms;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SKELETON LOADERS
+═══════════════════════════════════════════════════════════════════ */
+/* Dark skeleton */
+.skeleton {
+  background: linear-gradient(90deg, var(--surface) 25%, var(--surface-2) 50%, var(--surface) 75%);
+  background-size: 400% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* Clinical skeleton */
+.cl-skeleton {
+  background: linear-gradient(90deg, var(--cl-surface-2) 25%, #e8eef4 50%, var(--cl-surface-2) 75%);
+  background-size: 400% 100%;
+  animation: cl-shimmer 1.4s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* Respect accessibility preferences */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SCREEN (MOBILE SCREENING) THEME
+   Full-screen card interface for CHWs on mobile
+═══════════════════════════════════════════════════════════════════ */
+.screen-theme {
+  --sc-bg: #0f172a;
+  --sc-surface: #1e293b;
+  --sc-border: rgba(255, 255, 255, 0.08);
+  --sc-text-1: #f8fafc;
+  --sc-text-2: #94a3b8;
+  --sc-green: #4ade80;
+  --sc-green-bg: rgba(74, 222, 128, 0.1);
+  --sc-red: #f87171;
+  --sc-amber: #fbbf24;
+
+  background: var(--sc-bg);
+  color: var(--sc-text-1);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   REFERRAL LETTER STYLES
+   Used inside the patients page detail panel
+═══════════════════════════════════════════════════════════════════ */
+.clinical .referral-letter {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 13.5px;
+  line-height: 1.8;
+  color: var(--cl-text-1);
+  background: var(--cl-surface);
+  padding: 24px 28px;
+  border: 1px solid var(--cl-border);
+  border-radius: 8px;
+  white-space: pre-wrap;
+}
+
+.clinical .referral-letter-header {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--cl-text-3);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--cl-border);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DARK THEME UTILITIES (for existing dark pages)
+═══════════════════════════════════════════════════════════════════ */
+.glass {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+}
+
+.urgent-pulse {
+  animation: pulseBorder 3s ease-in-out infinite;
+}
+
+/* Impact projector range thumb (avoid inline style hydration mismatches) */
+.impact-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  background: #00d4a0;
+  cursor: pointer;
+  border: 2px solid rgba(10, 14, 20, 0.8);
+  box-shadow: 0 0 8px rgba(0, 212, 160, 0.4);
+}
+
+.impact-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  background: #00d4a0;
+  cursor: pointer;
+  border: 2px solid rgba(10, 14, 20, 0.8);
+  box-shadow: 0 0 8px rgba(0, 212, 160, 0.4);
+}
