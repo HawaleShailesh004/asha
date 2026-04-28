@@ -18,6 +18,7 @@ This eliminates:
 
 import os
 import logging
+import threading
 from contextlib import asynccontextmanager
 from datetime import datetime
 
@@ -34,29 +35,65 @@ logging.basicConfig(
 )
 log = logging.getLogger("asha")
 
+_model_init_lock = threading.Lock()
+_models_loading = False
+_models_ready = False
+
+
+def _load_models_sync(app: FastAPI):
+    """Load heavy models in a background thread so startup can bind PORT quickly."""
+    global _models_ready, _models_loading
+    with _model_init_lock:
+        if _models_ready:
+            return
+        _models_loading = True
+        try:
+            log.info("ASHA model loader — starting background model initialization")
+
+            from sentence_transformers import SentenceTransformer
+            st_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
+            log.info("SentenceTransformer loaded")
+
+            from ml.symptom_mapper import SymptomMapper
+            app.state.symptom_mapper = SymptomMapper(model=st_model)
+            log.info("SymptomMapper ready")
+
+            from ml.train_cervical import load_model as load_cervical
+            app.state.cervical_model = load_cervical()
+            log.info("Cervical model loaded")
+
+            from ml.pii_scrubber import PIIScrubber
+            app.state.pii_scrubber = PIIScrubber()
+            log.info("PII scrubber loaded")
+
+            _models_ready = True
+            log.info("All models loaded — ASHA ready")
+        except Exception as e:
+            log.exception("Background model load failed: %s", e)
+        finally:
+            _models_loading = False
+
+
+def _start_model_loader(app: FastAPI):
+    if _models_ready or _models_loading:
+        return
+    t = threading.Thread(target=_load_models_sync, args=(app,), daemon=True)
+    t.start()
+
+
+def _are_models_ready() -> bool:
+    return _models_ready
+
 
 # ── Startup ───────────────────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    log.info("ASHA starting up — loading models")
-
-    from sentence_transformers import SentenceTransformer
-    st_model = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
-    log.info("SentenceTransformer loaded")
-
-    from ml.symptom_mapper import SymptomMapper
-    app.state.symptom_mapper = SymptomMapper(model=st_model)
-    log.info("SymptomMapper ready")
-
-    from ml.train_cervical import load_model as load_cervical
-    app.state.cervical_model = load_cervical()
-    log.info("Cervical model loaded")
-
-    from ml.pii_scrubber import PIIScrubber
-    app.state.pii_scrubber = PIIScrubber()
-    log.info("PII scrubber loaded")
-
-    log.info("All models loaded — ASHA ready")
+    # Boot fast for PaaS health checks; load heavy models in background.
+    app.state.symptom_mapper = None
+    app.state.cervical_model = None
+    app.state.pii_scrubber = None
+    log.info("ASHA starting up — binding server, model load deferred")
+    _start_model_loader(app)
     yield
     log.info("ASHA shutting down")
 
@@ -76,7 +113,13 @@ app.add_middleware(
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "version": "3.0.0", "ts": datetime.utcnow().isoformat()}
+    return {
+        "status": "ok",
+        "version": "3.0.0",
+        "models_ready": _are_models_ready(),
+        "models_loading": _models_loading,
+        "ts": datetime.utcnow().isoformat(),
+    }
 
 
 # ── Webhook ───────────────────────────────────────────────────────────────────
@@ -106,16 +149,20 @@ async def webhook(
     # PII scrubbing — ONLY during screening, never registration or idle
     # Registration phase needs real names and phone numbers intact
     if phase == "screening":
-        scrubbed = request.app.state.pii_scrubber.scrub(message)
-        safe_msg = scrubbed["scrubbed_text"]
-        if scrubbed["pii_detected"]:
-            log.info("PII scrubbed: %s entities", scrubbed["entities_removed"])
+        if _are_models_ready() and request.app.state.pii_scrubber:
+            scrubbed = request.app.state.pii_scrubber.scrub(message)
+            safe_msg = scrubbed["scrubbed_text"]
+            if scrubbed["pii_detected"]:
+                log.info("PII scrubbed: %s entities", scrubbed["entities_removed"])
+        else:
+            _start_model_loader(request.app)
+            safe_msg = message
     else:
         safe_msg = message
 
     # Symptom mapping — only useful during screening
     sym_map = {"accepted": False, "clinical_term": None, "confidence": 0.0}
-    if phase == "screening":
+    if phase == "screening" and _are_models_ready() and request.app.state.symptom_mapper:
         sym_map = request.app.state.symptom_mapper.map(safe_msg)
         if sym_map["accepted"]:
             log.info("SYM | %s → %s (%.2f)", message[:40], sym_map["clinical_term"], sym_map["confidence"])
@@ -362,6 +409,9 @@ async def _handle_survivorship(phone, message, history, geography, db) -> str:
 
 async def _handle_risk_scoring(phone, patient_data, language, app_state, db) -> str:
     """Run ML risk models and generate referral if needed."""
+    if not _are_models_ready():
+        return "ASHA is still loading clinical models. Please retry in 20-40 seconds."
+
     from agents.risk import compute_risk
     from agents.referral import generate_referral_letter, format_letter_for_whatsapp
 
@@ -525,12 +575,15 @@ async def api_chat(request: Request):
     # PII scrubbing only during screening
     safe_msg = message
     if phase == "screening":
-        scrubbed = request.app.state.pii_scrubber.scrub(message)
-        safe_msg = scrubbed["scrubbed_text"]
+        if _are_models_ready() and request.app.state.pii_scrubber:
+            scrubbed = request.app.state.pii_scrubber.scrub(message)
+            safe_msg = scrubbed["scrubbed_text"]
+        else:
+            _start_model_loader(request.app)
 
     # Symptom mapping only during screening
     sym_map = {"accepted": False, "clinical_term": None, "confidence": 0.0}
-    if phase == "screening":
+    if phase == "screening" and _are_models_ready() and request.app.state.symptom_mapper:
         sym_map = request.app.state.symptom_mapper.map(safe_msg)
 
     db.append_to_history(phone, "user", message)
@@ -561,6 +614,9 @@ async def api_referral(request: Request):
 
     if not patient_data:
         return JSONResponse({"error": "patient_data required"}, status_code=400)
+    if not _are_models_ready():
+        _start_model_loader(request.app)
+        return JSONResponse({"error": "models warming up; retry in 20-40 seconds"}, status_code=503)
 
     # Detect language from phone if provided
     phone = body.get("phone", "web_screen")
