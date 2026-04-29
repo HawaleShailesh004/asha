@@ -64,6 +64,16 @@ function QualityGauge({ score }: { score: number }) {
   )
 }
 
+function formatChwLabel(rawPhone: string | null | undefined): string {
+  const raw = (rawPhone || '').trim()
+  if (!raw) return 'Unknown CHW'
+  if (raw.startsWith('web_')) return 'Web demo CHW'
+
+  const digits = raw.replace(/\D/g, '')
+  if (!digits) return raw
+  return `...${digits.slice(-6)}`
+}
+
 // ── Referral letter rendered as a proper document ────────────────────────────
 function ReferralDocument({
   letter, quality, onCopy, copied,
@@ -292,7 +302,7 @@ function PatientListCard({
         fontFamily: 'DM Mono, monospace',
         marginTop: 'auto',
       }}>
-        {timeAgo(patient.created_at)} · {patient.chw_phone.slice(-8)}
+        {timeAgo(patient.created_at)} · {formatChwLabel(patient.chw_phone)}
       </p>
     </div>
   )

@@ -33,6 +33,27 @@ interface Checkin {
   created_at:      string
 }
 
+function chooseBestDefaultSurvivor(
+  survivors: Survivor[],
+  checkinMap: Record<string, Checkin[]>
+): Survivor | null {
+  if (survivors.length === 0) return null
+
+  const ranked = [...survivors].sort((a, b) => {
+    const aCount = (checkinMap[a.phone] || []).length
+    const bCount = (checkinMap[b.phone] || []).length
+    if (bCount !== aCount) return bCount - aCount
+
+    const aWeek = (checkinMap[a.phone] || []).at(-1)?.week_number || 0
+    const bWeek = (checkinMap[b.phone] || []).at(-1)?.week_number || 0
+    if (bWeek !== aWeek) return bWeek - aWeek
+
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  })
+
+  return ranked[0] || null
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function generateSummary(name: string, checkins: Checkin[]): {
   text: string; tone: 'positive' | 'warning' | 'neutral'
@@ -721,8 +742,9 @@ export default function SurvivorshipPage() {
           if (cd) map[s.phone] = cd as Checkin[]
         }
         setCheckins(map)
-        // Auto-select first survivor
-        if (data.length > 0) setSelected(data[0] as Survivor)
+        // Auto-select the strongest demo/useful record: most check-ins first.
+        const best = chooseBestDefaultSurvivor(data as Survivor[], map)
+        if (best) setSelected(best)
       }
       setLoading(false)
     }

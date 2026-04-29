@@ -36,7 +36,7 @@ CHW (WhatsApp) ──► Twilio ──► FastAPI (Railway)
                     (Next.js/Vercel)
 ```
 
-<!-- DIAGRAM PLACEHOLDER: Full system architecture SVG showing all services, data flows, and external integrations. Include: CHW → Twilio → FastAPI → [ML models, Groq, Supabase] → Reply path. Also show: Web frontend → Next.js API proxy → FastAPI. -->
+![Full system architecture](images/system_architecture.png)
 
 ---
 
@@ -77,7 +77,7 @@ survivorship (check-in agent) ────────────────�
 followup (1-word response handler) ─────────────────────────► idle
 ```
 
-<!-- DIAGRAM PLACEHOLDER: State machine diagram showing phase transitions with arrows. Highlight the "no mid-flow command intercepts" constraint visually. -->
+![Phase state machine](images/phase_state_machine.png)
 
 **Global reset** (`reset` / `restart` / `start over`) is handled **before** phase dispatch — it is the only command that fires regardless of phase.
 
@@ -127,7 +127,7 @@ Isotonic calibration (CalibratedClassifierCV)
 Threshold tuning: dynamic (computed from precision-recall optimization at training time)
 ```
 
-<!-- DIAGRAM PLACEHOLDER: Precision-Recall curve showing sensitivity=1.0 at threshold 0.039. Include ROC curve with AUC annotation. Show the operating point explicitly. -->
+![Precision-Recall curve with operating point](images/pr_curve.png)
 
 **Why threshold 0.039?** This is a screening tool, not a diagnostic tool. The clinical requirement is **sensitivity = 1.0** — never miss a positive case. Specificity is a secondary concern. A false negative (missed cancer) is categorically worse than a false positive (unnecessary referral). The threshold is set to the point where the model catches every positive in the test set.
 
@@ -183,7 +183,7 @@ Score 20–32 → HIGH
 
 The weights are derived from GLOBOCAN 2020 risk attribution data and WHO's Guide to Cancer Early Diagnosis (2017). The betel quid weight (5) reflects its status as the primary carcinogen for OSCC in South Asia — directly relevant to our Cancer Aid Society India partnership targeting the GoodBye Tobacco and pan/gutka cessation programmes.
 
-<!-- DIAGRAM PLACEHOLDER: Bar chart showing oral cancer incidence vs tobacco/betel quid prevalence by country (India, Kenya, Nigeria, Tanzania). Source: GLOBOCAN 2020. -->
+![Oral cancer incidence and risk prevalence](images/oral_cancer_chart.png)
 
 ---
 
