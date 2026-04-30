@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import {
+  getBackendBases,
+  orderBackendsByWinner,
+  pickFastestHealthyBackend,
+} from '@/lib/backend'
 
-const BACKEND = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000')
-  .trim()
-  .replace(/\/+$/, '')
+const REQUEST_TIMEOUT_MS = 30000
 
 export async function POST(req: NextRequest) {
   const body = await req.json()
@@ -12,28 +15,53 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'missing fields' }, { status: 400 })
   }
 
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 30000)
+  const backends = getBackendBases()
+  if (!backends.length) {
+    return NextResponse.json(
+      { error: 'backend config missing', detail: 'Set NEXT_PUBLIC_API_URLS or BACKEND_URLS in Vercel env.' },
+      { status: 500 }
+    )
+  }
 
   try {
-    // Forward to FastAPI /api/chat endpoint
-    const res = await fetch(`${BACKEND}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id, message, image }),
-      signal: controller.signal,
-      cache: 'no-store',
-    })
+    const winner = await pickFastestHealthyBackend(backends)
+    const orderedBackends = orderBackendsByWinner(backends, winner)
+    let lastStatus = 502
+    let lastError = 'backend unreachable'
 
-    if (!res.ok) {
-      return NextResponse.json({ error: 'backend error', status: res.status }, { status: 502 })
+    for (const backend of orderedBackends) {
+      const controller = new AbortController()
+      const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+      try {
+        const res = await fetch(`${backend}/api/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id, message, image }),
+          signal: controller.signal,
+          cache: 'no-store',
+        })
+
+        if (!res.ok) {
+          lastStatus = res.status
+          lastError = `backend responded ${res.status}`
+          continue
+        }
+
+        const data = await res.json()
+        return NextResponse.json(data)
+      } catch (err) {
+        lastError = String(err)
+        continue
+      } finally {
+        clearTimeout(timeout)
+      }
     }
 
-    const data = await res.json()
-    return NextResponse.json(data)
+    return NextResponse.json(
+      { error: 'backend error', status: lastStatus, detail: lastError, tried: orderedBackends },
+      { status: 502 }
+    )
   } catch {
     return NextResponse.json({ error: 'backend unreachable' }, { status: 502 })
-  } finally {
-    clearTimeout(timeout)
   }
 }

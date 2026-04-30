@@ -139,7 +139,12 @@ async def webhook(
 
     import services.supabase_service as db
 
-    session      = db.get_session(phone)
+    try:
+        session = db.get_session(phone)
+    except Exception as e:
+        log.error("Session fetch failed for %s: %s", phone, e)
+        return JSONResponse({"status": "temporary_db_error"}, status_code=200)
+
     phase        = session.get("phase", "idle")
     history      = session.get("history", [])
     patient_data = session.get("patient_data", {})
@@ -167,7 +172,10 @@ async def webhook(
         if sym_map["accepted"]:
             log.info("SYM | %s → %s (%.2f)", message[:40], sym_map["clinical_term"], sym_map["confidence"])
 
-    db.append_to_history(phone, "user", message)
+    try:
+        db.append_to_history(phone, "user", message)
+    except Exception as e:
+        log.warning("History write failed (user) for %s: %s", phone, e)
 
     reply = await _dispatch(
         phase=phase, phone=phone, message=safe_msg, raw_message=message,
@@ -176,7 +184,10 @@ async def webhook(
         sym_map=sym_map, app_state=request.app.state,
     )
 
-    db.append_to_history(phone, "assistant", reply)
+    try:
+        db.append_to_history(phone, "assistant", reply)
+    except Exception as e:
+        log.warning("History write failed (assistant) for %s: %s", phone, e)
 
     from services.twilio_service import send_whatsapp
     try:
@@ -196,6 +207,12 @@ async def _dispatch(
     sym_map: dict, app_state,
 ) -> str:
     import services.supabase_service as db
+
+    # Global reset must work from any phase.
+    normalized_raw = (raw_message or "").lower().strip()
+    if normalized_raw in ("reset", "restart", "start over"):
+        db.reset_session(phone)
+        return _help_text()
 
     # ── IDLE: the only phase where global commands are evaluated ──────────────
     if phase == "idle":

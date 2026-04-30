@@ -4,7 +4,14 @@ Adds geography detection for language routing.
 """
 
 import os
+import time
+import logging
 from supabase import create_client, Client
+
+log = logging.getLogger("asha.supabase")
+
+MAX_RETRIES = 3
+RETRY_BASE_DELAY = 0.35
 
 
 def get_client() -> Client:
@@ -12,6 +19,27 @@ def get_client() -> Client:
         os.environ["SUPABASE_URL"],
         os.environ["SUPABASE_SERVICE_KEY"]
     )
+
+
+def _execute_with_retry(request_builder):
+    """
+    Execute Supabase request with short retry/backoff for transient network drops.
+    """
+    last_exc = None
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            return request_builder.execute()
+        except Exception as exc:
+            last_exc = exc
+            if attempt == MAX_RETRIES:
+                break
+            delay = RETRY_BASE_DELAY * attempt
+            log.warning(
+                "Supabase request failed (attempt %s/%s): %s; retrying in %.2fs",
+                attempt, MAX_RETRIES, exc, delay
+            )
+            time.sleep(delay)
+    raise last_exc
 
 
 # ── Geography / Language ──────────────────────────────────────────────────────
@@ -38,7 +66,7 @@ def detect_geography(phone: str) -> tuple[str, str]:
 # ── Session ───────────────────────────────────────────────────────────────────
 def get_session(phone: str) -> dict:
     db     = get_client()
-    result = db.table("sessions").select("*").eq("phone", phone).execute()
+    result = _execute_with_retry(db.table("sessions").select("*").eq("phone", phone))
     if result.data:
         return result.data[0]
 
@@ -51,12 +79,12 @@ def get_session(phone: str) -> dict:
         "geography":    geography,
         "language":     language,
     }
-    db.table("sessions").insert(new_session).execute()
+    _execute_with_retry(db.table("sessions").insert(new_session))
     return new_session
 
 
 def update_session(phone: str, updates: dict) -> None:
-    get_client().table("sessions").update(updates).eq("phone", phone).execute()
+    _execute_with_retry(get_client().table("sessions").update(updates).eq("phone", phone))
 
 
 def reset_session(phone: str) -> None:
@@ -87,7 +115,7 @@ def merge_patient_data(phone: str, new_data: dict) -> dict:
 # ── Patients ──────────────────────────────────────────────────────────────────
 def save_patient(record: dict) -> str | None:
     db     = get_client()
-    result = db.table("patients").insert(record).execute()
+    result = _execute_with_retry(db.table("patients").insert(record))
     return result.data[0]["id"] if result.data else None
 
 
@@ -98,14 +126,14 @@ def get_patients_for_dashboard(limit: int = 100) -> list:
         .select("*")
         .order("created_at", desc=True)
         .limit(limit)
-        .execute()
     )
+    result = _execute_with_retry(result)
     return result.data or []
 
 
 def get_risk_distribution() -> dict:
     db     = get_client()
-    result = db.table("patients").select("risk_tier").execute()
+    result = _execute_with_retry(db.table("patients").select("risk_tier"))
     counts = {"HIGH": 0, "ELEVATED": 0, "LOW": 0}
     for row in (result.data or []):
         tier = row.get("risk_tier", "LOW")
@@ -116,7 +144,7 @@ def get_risk_distribution() -> dict:
 
 def get_regional_risk_table() -> list:
     db     = get_client()
-    result = db.table("patients").select("chw_phone, risk_tier").execute()
+    result = _execute_with_retry(db.table("patients").select("chw_phone, risk_tier"))
     summary: dict[str, dict] = {}
     for row in (result.data or []):
         phone = row.get("chw_phone", "unknown")
@@ -133,23 +161,23 @@ def get_regional_risk_table() -> list:
 
 # ── Referral ──────────────────────────────────────────────────────────────────
 def save_referral(record: dict) -> None:
-    get_client().table("referral_log").insert(record).execute()
+    _execute_with_retry(get_client().table("referral_log").insert(record))
 
 
 # ── Survivorship ──────────────────────────────────────────────────────────────
 def get_survivor(phone: str) -> dict | None:
     db     = get_client()
-    result = db.table("survivorship_cohort").select("*").eq("phone", phone).execute()
+    result = _execute_with_retry(db.table("survivorship_cohort").select("*").eq("phone", phone))
     return result.data[0] if result.data else None
 
 
 def save_checkin(checkin: dict) -> None:
     db = get_client()
-    db.table("survivorship_checkins").insert(checkin).execute()
-    db.table("survivorship_cohort").update({
+    _execute_with_retry(db.table("survivorship_checkins").insert(checkin))
+    _execute_with_retry(db.table("survivorship_cohort").update({
         "checkin_week": checkin["week_number"],
         "last_checkin": "now()",
-    }).eq("phone", checkin["survivor_phone"]).execute()
+    }).eq("phone", checkin["survivor_phone"]))
 
 
 def get_checkin_history(phone: str, last_n: int = 8) -> list:
@@ -160,6 +188,6 @@ def get_checkin_history(phone: str, last_n: int = 8) -> list:
         .eq("survivor_phone", phone)
         .order("created_at", desc=True)
         .limit(last_n)
-        .execute()
     )
+    result = _execute_with_retry(result)
     return list(reversed(result.data or []))
