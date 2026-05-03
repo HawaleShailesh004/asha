@@ -133,8 +133,6 @@ Threshold tuning: dynamic (computed from precision-recall optimization at traini
 
 **Cross-validation vs test AUC:** CV AUC 0.568, test AUC 0.725. This gap reflects the small dataset size (858 patients, ~50 positives). It is a statistical artifact, not a safety problem, because: (a) the model operates at a single fixed threshold chosen for sensitivity=1.0, not across the AUC range; and (b) the clinical override layer acts as a hard safety net below the model.
 
-<!-- DIAGRAM PLACEHOLDER: Feature importance SHAP plot showing postcoital_bleeding as dominant predictor, followed by stds_history, age, smokes. -->
-
 ---
 
 ### Clinical Override Layer

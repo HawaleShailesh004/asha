@@ -28,7 +28,7 @@ Core deployment target: low-resource settings in Africa and South Asia with low 
 ASHA is split into:
 
 - **Backend:** FastAPI orchestration, routing, AI/ML execution, Supabase persistence, Twilio channel.
-- **Frontend:** Next.js App Router UI, chat/screen/dashboard surfaces, backend proxy routes.
+- **Frontend:** Next.js App Router UI, chat/screen/dashboard surfaces, mixed data access (direct Supabase for realtime operational views + backend proxy routes for chat/referral workflows).
 - **Data layer:** Supabase tables for sessions, patients, referrals, survivorship cohort/check-ins.
 - **Messaging channel:** Twilio WhatsApp webhook + sender integration.
 - **AI/ML layer:** Groq LLM/Vision + local model artifacts (XGBoost + symptom mapping + PII scrubber).
@@ -317,6 +317,7 @@ Backend endpoints in active use:
 - `POST /api/referral`
 - `GET /api/last-reply`
 - `GET /api/stats`
+- `GET /api/followup-stats`
 
 Frontend internal proxy endpoints:
 
@@ -339,6 +340,8 @@ Frontend internal proxy endpoints:
 ## 12.2 Frontend critical env
 
 - `NEXT_PUBLIC_API_URL`
+- `NEXT_PUBLIC_API_URLS`
+- `BACKEND_URLS` (optional; server-side Next.js runtime)
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 

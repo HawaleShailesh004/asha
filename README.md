@@ -5,8 +5,8 @@
 **342,000 women die of cervical cancer every year. 90% within reach of a CHW who had no tools.**  
 ASHA changes that — via WhatsApp, on any phone, with no app installation required.
 
-[![Live Demo](https://img.shields.io/badge/Live-Dashboard-00d4a0?style=flat)](https://your-vercel-url.vercel.app)
-[![Backend](https://img.shields.io/badge/Backend-Railway-00d4a0?style=flat)](https://your-railway-url.railway.app/health)
+[![Live Demo](https://img.shields.io/badge/Live-Dashboard-00d4a0?style=flat)](https://asha-gnec.vercel.app/)
+[![Backend](https://img.shields.io/badge/Backend-Railway-00d4a0?style=flat)](https://asha-production-7e1d.up.railway.app/health)
 [![WHO Protocol](https://img.shields.io/badge/WHO-Protocol%20Aligned-blue?style=flat)]()
 [![SDG 3](https://img.shields.io/badge/SDG-3.1%20·%203.4%20·%203.8-blue?style=flat)]()
 
@@ -28,11 +28,11 @@ ASHA changes that — via WhatsApp, on any phone, with no app installation requi
 
 | Surface | URL |
 |---|---|
-| Landing page | `https://your-vercel-url.vercel.app` |
-| NGO Dashboard | `https://your-vercel-url.vercel.app/dashboard` |
-| Mobile screening | `https://your-vercel-url.vercel.app/screen` |
-| Web chat | `https://your-vercel-url.vercel.app/chat` |
-| Backend health | `https://your-railway-url.railway.app/health` |
+| Landing page | `https://asha-gnec.vercel.app/` |
+| NGO Dashboard | `https://asha-gnec.vercel.app/dashboard` |
+| Mobile screening | `https://asha-gnec.vercel.app/screen` |
+| Web chat | `https://asha-gnec.vercel.app/chat` |
+| Backend health | `https://asha-production-7e1d.up.railway.app/health` |
 
 ---
 
@@ -137,7 +137,7 @@ Create `frontend/.env.local`:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_API_URLS=http://localhost:8000,https://your-live-backend.onrender.com
+NEXT_PUBLIC_API_URLS=http://localhost:8000,https://asha-production-7e1d.up.railway.app
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
@@ -252,7 +252,7 @@ In Supabase → Database → Replication → enable `patients` table.
 
 1. Go to [Twilio Console → Messaging → Try WhatsApp](https://console.twilio.com)
 2. Join sandbox: send `join blanket-never` to `+1 415 523 8886`
-3. Set webhook URL: `https://your-railway-url.railway.app/webhook`
+3. Set webhook URL: `https://asha-production-7e1d.up.railway.app/webhook`
 4. Method: `HTTP POST`
 
 Test:
@@ -277,7 +277,7 @@ Expected: HIGH RISK result + referral letter
 4. Add `PORT=8000` to Railway env
 5. Deploy — Railway auto-detects Python and runs `python main.py`
 
-**Keep-alive:** Add UptimeRobot (free) to ping `https://your-railway-url.railway.app/health` every 5 minutes. Prevents Railway free tier from sleeping.
+**Keep-alive:** Add UptimeRobot (free) to ping `https://asha-production-7e1d.up.railway.app/health` every 5 minutes. Prevents Railway free tier from sleeping.
 
 ### Frontend → Vercel
 
