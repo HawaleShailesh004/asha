@@ -1,109 +1,210 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { supabase, Patient, RiskTier } from '@/lib/supabase'
-import { ArrowUpRight, Leaf, ClipboardList, ChevronRight, CheckCircle2, Pencil, Trash2, X } from 'lucide-react'
-import ClinicalHeader from '@/components/ClinicalHeader'
-import ClinicalFooter from '@/components/ClinicalFooter'
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { supabase, Patient, RiskTier } from "@/lib/supabase";
 import {
-  RiskBadge, Skeleton, EmptyState,
-  timeAgo, RISK_COLOR, RISK_BG, RISK_BORDER,
-} from '@/components/ClinicalShared'
+  ArrowUpRight,
+  Leaf,
+  ClipboardList,
+  ChevronRight,
+  CheckCircle2,
+  Pencil,
+  Trash2,
+  X,
+} from "lucide-react";
+import ClinicalHeader from "@/components/ClinicalHeader";
+import ClinicalFooter from "@/components/ClinicalFooter";
+import {
+  RiskBadge,
+  Skeleton,
+  EmptyState,
+  timeAgo,
+  RISK_COLOR,
+  RISK_BG,
+  RISK_BORDER,
+} from "@/components/ClinicalShared";
 
 // ── Score ring SVG ────────────────────────────────────────────────────────────
 function ScoreRing({
-  value, max, color, label,
-}: { value: number; max: number; color: string; label: string }) {
-  const pct  = Math.min(value / max, 1)
-  const r    = 26
-  const circ = 2 * Math.PI * r
+  value,
+  max,
+  color,
+  label,
+}: {
+  value: number;
+  max: number;
+  color: string;
+  label: string;
+}) {
+  const pct = Math.min(value / max, 1);
+  const r = 26;
+  const circ = 2 * Math.PI * r;
   return (
-    <div style={{ textAlign: 'center' }}>
+    <div style={{ textAlign: "center" }}>
       <svg width={62} height={62} viewBox="0 0 62 62">
-        <circle cx={31} cy={31} r={r} fill="none" stroke="var(--cl-border)" strokeWidth={5} />
-        <circle cx={31} cy={31} r={r} fill="none" stroke={color} strokeWidth={5}
+        <circle
+          cx={31}
+          cy={31}
+          r={r}
+          fill="none"
+          stroke="var(--cl-border)"
+          strokeWidth={5}
+        />
+        <circle
+          cx={31}
+          cy={31}
+          r={r}
+          fill="none"
+          stroke={color}
+          strokeWidth={5}
           strokeDasharray={`${pct * circ} ${circ}`}
           strokeLinecap="round"
           transform="rotate(-90 31 31)"
-          style={{ transition: 'stroke-dasharray 0.5s ease' }}
+          style={{ transition: "stroke-dasharray 0.5s ease" }}
         />
-        <text x={31} y={31} textAnchor="middle" dominantBaseline="central"
-          style={{ fontSize: 12, fontFamily: 'DM Mono, monospace', fill: color, fontWeight: 400 }}>
+        <text
+          x={31}
+          y={31}
+          textAnchor="middle"
+          dominantBaseline="central"
+          style={{
+            fontSize: 12,
+            fontFamily: "DM Mono, monospace",
+            fill: color,
+            fontWeight: 400,
+          }}
+        >
           {value}
         </text>
       </svg>
-      <p style={{ fontSize: 9, color: 'var(--cl-text4)', marginTop: 2 }}>{label}</p>
+      <p style={{ fontSize: 9, color: "var(--cl-text4)", marginTop: 2 }}>
+        {label}
+      </p>
     </div>
-  )
+  );
 }
 
 // ── Quality gauge ─────────────────────────────────────────────────────────────
 function QualityGauge({ score }: { score: number }) {
-  const color = score >= 8 ? 'var(--cl-low)' : score >= 7 ? 'var(--cl-elevated)' : 'var(--cl-high)'
-  const r    = 28
-  const circ = 2 * Math.PI * r
-  const pct  = score / 10
+  const color =
+    score >= 8
+      ? "var(--cl-low)"
+      : score >= 7
+        ? "var(--cl-elevated)"
+        : "var(--cl-high)";
+  const r = 28;
+  const circ = 2 * Math.PI * r;
+  const pct = score / 10;
   return (
-    <div style={{ textAlign: 'center' }}>
+    <div style={{ textAlign: "center" }}>
       <svg width={70} height={70} viewBox="0 0 70 70">
-        <circle cx={35} cy={35} r={r} fill="none" stroke="var(--cl-border)" strokeWidth={5} />
-        <circle cx={35} cy={35} r={r} fill="none" stroke={color} strokeWidth={5}
+        <circle
+          cx={35}
+          cy={35}
+          r={r}
+          fill="none"
+          stroke="var(--cl-border)"
+          strokeWidth={5}
+        />
+        <circle
+          cx={35}
+          cy={35}
+          r={r}
+          fill="none"
+          stroke={color}
+          strokeWidth={5}
           strokeDasharray={`${pct * circ} ${circ}`}
           strokeLinecap="round"
           transform="rotate(-90 35 35)"
-          style={{ transition: 'stroke-dasharray 0.6s ease' }}
+          style={{ transition: "stroke-dasharray 0.6s ease" }}
         />
-        <text x={35} y={35} textAnchor="middle" dominantBaseline="central"
-          style={{ fontSize: 14, fontFamily: 'DM Mono, monospace', fill: color, fontWeight: 400 }}>
+        <text
+          x={35}
+          y={35}
+          textAnchor="middle"
+          dominantBaseline="central"
+          style={{
+            fontSize: 14,
+            fontFamily: "DM Mono, monospace",
+            fill: color,
+            fontWeight: 400,
+          }}
+        >
           {score}
         </text>
       </svg>
-      <p style={{ fontSize: 9, color: 'var(--cl-text4)', marginTop: 2 }}>Quality</p>
-      <p style={{ fontSize: 8, color: 'var(--cl-text4)' }}>Clinical · Action · Clarity</p>
+      <p style={{ fontSize: 9, color: "var(--cl-text4)", marginTop: 2 }}>
+        Quality
+      </p>
+      <p style={{ fontSize: 8, color: "var(--cl-text4)" }}>
+        Clinical · Action · Clarity
+      </p>
     </div>
-  )
+  );
 }
 
 function formatChwLabel(rawPhone: string | null | undefined): string {
-  const raw = (rawPhone || '').trim()
-  if (!raw) return 'Unknown CHW'
-  if (raw.startsWith('web_')) return 'Web demo CHW'
+  const raw = (rawPhone || "").trim();
+  if (!raw) return "Unknown CHW";
+  if (raw.startsWith("web_")) return "Web demo CHW";
 
-  const digits = raw.replace(/\D/g, '')
-  if (!digits) return raw
-  return `...${digits.slice(-6)}`
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return raw;
+  return `...${digits.slice(-6)}`;
 }
 
 // ── Referral letter rendered as a proper document ────────────────────────────
 function ReferralDocument({
-  letter, quality, onCopy, copied,
+  letter,
+  quality,
+  onCopy,
+  copied,
 }: {
-  letter:  string
-  quality: number | null
-  onCopy:  () => void
-  copied:  boolean
+  letter: string;
+  quality: number | null;
+  onCopy: () => void;
+  copied: boolean;
 }) {
   // Parse letter into sections
-  const lines      = letter.split('\n').filter(l => l.trim())
-  const dateToLine = lines.find(l => /^(January|February|March|April|May|June|July|August|September|October|November|December|\d{1,2}\s)/.test(l.trim()))
-  const toLine     = lines.find(l => l.trim().startsWith('To:'))
-  const bodyLines  = lines.filter(l =>
-    l !== dateToLine && l !== toLine &&
-    !l.includes('Generated by ASHA') && !l.includes('Letter quality')
-  )
+  const lines = letter.split("\n").filter((l) => l.trim());
+  const dateToLine = lines.find((l) =>
+    /^(January|February|March|April|May|June|July|August|September|October|November|December|\d{1,2}\s)/.test(
+      l.trim(),
+    ),
+  );
+  const toLine = lines.find((l) => l.trim().startsWith("To:"));
+  const bodyLines = lines.filter(
+    (l) =>
+      l !== dateToLine &&
+      l !== toLine &&
+      !l.includes("Generated by ASHA") &&
+      !l.includes("Letter quality"),
+  );
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 10,
+        }}
+      >
         <p className="cl-label">Referral Letter</p>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {quality && (
-            <span style={{
-              fontSize: 11, color: quality >= 8 ? 'var(--cl-low)' : 'var(--cl-elevated)',
-              fontWeight: 500,
-            }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <span
+              style={{
+                fontSize: 11,
+                color: quality >= 8 ? "var(--cl-low)" : "var(--cl-elevated)",
+                fontWeight: 500,
+              }}
+            >
+              <span
+                style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+              >
                 <CheckCircle2 size={10} />
                 {quality}/10
               </span>
@@ -113,63 +214,103 @@ function ReferralDocument({
             className="motion-pressable"
             onClick={onCopy}
             style={{
-              padding: '4px 10px', borderRadius: 6,
-              background: copied ? 'var(--cl-low-bg)' : 'var(--cl-surface-2)',
-              border: `1px solid ${copied ? 'var(--cl-low-border)' : 'var(--cl-border)'}`,
-              color: copied ? 'var(--cl-low)' : 'var(--cl-text3)',
-              fontSize: 10, cursor: 'pointer',
-              fontFamily: 'DM Sans, sans-serif',
-              transition: 'all 0.2s',
+              padding: "4px 10px",
+              borderRadius: 6,
+              background: copied ? "var(--cl-low-bg)" : "var(--cl-surface-2)",
+              border: `1px solid ${copied ? "var(--cl-low-border)" : "var(--cl-border)"}`,
+              color: copied ? "var(--cl-low)" : "var(--cl-text3)",
+              fontSize: 10,
+              cursor: "pointer",
+              fontFamily: "DM Sans, sans-serif",
+              transition: "all 0.2s",
             }}
-          >{copied ? 'Copied' : 'Copy'}</button>
+          >
+            {copied ? "Copied" : "Copy"}
+          </button>
         </div>
       </div>
 
       {/* Document-style rendering */}
-      <div style={{
-        background: 'var(--cl-surface)',
-        border: '1px solid var(--cl-border)',
-        borderRadius: 10,
-        overflow: 'hidden',
-        boxShadow: 'var(--cl-shadow-sm)',
-      }}>
+      <div
+        style={{
+          background: "var(--cl-surface)",
+          border: "1px solid var(--cl-border)",
+          borderRadius: 10,
+          overflow: "hidden",
+          boxShadow: "var(--cl-shadow-sm)",
+        }}
+      >
         {/* Document header */}
-        <div style={{
-          background: 'var(--cl-primary)',
-          padding: '12px 16px',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        }}>
+        <div
+          style={{
+            background: "var(--cl-primary)",
+            padding: "12px 16px",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <div>
-            <p style={{ fontSize: 11, fontWeight: 600, color: '#fff', letterSpacing: '0.04em' }}>
+            <p
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: "#fff",
+                letterSpacing: "0.04em",
+              }}
+            >
               CLINICAL REFERRAL
             </p>
-            <p style={{ fontSize: 9, color: 'rgba(255,255,255,0.6)', marginTop: 1 }}>
+            <p
+              style={{
+                fontSize: 9,
+                color: "rgba(255,255,255,0.6)",
+                marginTop: 1,
+              }}
+            >
               ASHA · WHO Protocol Aligned
             </p>
           </div>
           {dateToLine && (
-            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)', fontFamily: 'DM Mono, monospace' }}>
+            <p
+              style={{
+                fontSize: 10,
+                color: "rgba(255,255,255,0.8)",
+                fontFamily: "DM Mono, monospace",
+              }}
+            >
               {dateToLine.trim()}
             </p>
           )}
         </div>
 
         {/* Document body */}
-        <div style={{ padding: '16px 18px', maxHeight: 280, overflowY: 'auto' }}>
+        <div
+          style={{ padding: "16px 18px", maxHeight: 280, overflowY: "auto" }}
+        >
           {toLine && (
-            <p style={{
-              fontSize: 11, color: 'var(--cl-text2)',
-              marginBottom: 12, fontWeight: 500,
-            }}>{toLine}</p>
+            <p
+              style={{
+                fontSize: 11,
+                color: "var(--cl-text2)",
+                marginBottom: 12,
+                fontWeight: 500,
+              }}
+            >
+              {toLine}
+            </p>
           )}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {bodyLines.map((line, i) => (
-              <p key={i} style={{
-                fontSize: 12,
-                color: 'var(--cl-text)',
-                lineHeight: 1.7,
-                fontFamily: 'Instrument Serif, Georgia, serif',
-              }}>
+              <p
+                key={i}
+                style={{
+                  fontSize: 12,
+                  color: "var(--cl-text)",
+                  lineHeight: 1.7,
+                  fontFamily: "Instrument Serif, Georgia, serif",
+                }}
+              >
                 {line.trim()}
               </p>
             ))}
@@ -177,74 +318,101 @@ function ReferralDocument({
         </div>
 
         {/* Footer */}
-        <div style={{
-          borderTop: '1px solid var(--cl-border)',
-          padding: '8px 18px',
-          background: 'var(--cl-surface-2)',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        }}>
-          <p style={{ fontSize: 9, color: 'var(--cl-text4)' }}>
+        <div
+          style={{
+            borderTop: "1px solid var(--cl-border)",
+            padding: "8px 18px",
+            background: "var(--cl-surface-2)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <p style={{ fontSize: 9, color: "var(--cl-text4)" }}>
             Generated by ASHA Clinical Support · Not a diagnosis
           </p>
           {quality && (
-            <p style={{ fontSize: 9, color: 'var(--cl-text4)', fontFamily: 'DM Mono, monospace' }}>
+            <p
+              style={{
+                fontSize: 9,
+                color: "var(--cl-text4)",
+                fontFamily: "DM Mono, monospace",
+              }}
+            >
               Quality {quality}/10
             </p>
           )}
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 // ── Patient list card ─────────────────────────────────────────────────────────
 function PatientListCard({
-  patient, selected, onClick,
+  patient,
+  selected,
+  onClick,
 }: {
-  patient:  Patient
-  selected: boolean
-  onClick:  () => void
+  patient: Patient;
+  selected: boolean;
+  onClick: () => void;
 }) {
-  const hasBetel = (patient.top_risk_factors || []).some(f =>
-    f.toLowerCase().includes('betel') || f.toLowerCase().includes('areca')
-  )
+  const hasBetel = (patient.top_risk_factors || []).some(
+    (f) =>
+      f.toLowerCase().includes("betel") || f.toLowerCase().includes("areca"),
+  );
 
   return (
     <div
       onClick={onClick}
       className="cl-card-hover"
       style={{
-        background: selected ? 'var(--cl-primary-bg)' : 'var(--cl-surface)',
-        border: `1px solid ${selected ? 'rgba(22,101,52,0.3)' : RISK_BORDER[patient.risk_tier]}`,
+        background: selected ? "var(--cl-primary-bg)" : "var(--cl-surface)",
+        border: `1px solid ${selected ? "rgba(22,101,52,0.3)" : RISK_BORDER[patient.risk_tier]}`,
         borderLeft: `3px solid ${RISK_COLOR[patient.risk_tier]}`,
         borderRadius: 10,
-        padding: '12px 14px',
-        cursor: 'pointer',
-        transition: 'all 0.15s',
-        boxShadow: selected ? 'var(--cl-shadow-md)' : 'var(--cl-shadow-sm)',
+        padding: "12px 14px",
+        cursor: "pointer",
+        transition: "all 0.15s",
+        boxShadow: selected ? "var(--cl-shadow-md)" : "var(--cl-shadow-sm)",
         minHeight: 168,
-        display: 'flex',
-        flexDirection: 'column',
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       {/* Badges */}
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+      <div
+        style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}
+      >
         <RiskBadge tier={patient.risk_tier} size="sm" />
         {patient.referral_generated && (
-          <span className="cl-badge cl-badge-blue" style={{ fontSize: 10, padding: '2px 8px' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <span
+            className="cl-badge cl-badge-blue"
+            style={{ fontSize: 10, padding: "2px 8px" }}
+          >
+            <span
+              style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+            >
               <ArrowUpRight size={10} />
               Referred
             </span>
           </span>
         )}
         {hasBetel && (
-          <span className="cl-badge" style={{
-            fontSize: 10, padding: '2px 8px',
-            color: 'var(--cl-elevated)', background: 'var(--cl-elev-bg)',
-            borderColor: 'var(--cl-elev-border)',
-          }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <span
+            className="cl-badge"
+            style={{
+              fontSize: 10,
+              padding: "2px 8px",
+              color: "var(--cl-elevated)",
+              background: "var(--cl-elev-bg)",
+              borderColor: "var(--cl-elev-border)",
+            }}
+          >
+            <span
+              style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+            >
               <Leaf size={10} />
               Betel quid
             </span>
@@ -253,31 +421,51 @@ function PatientListCard({
       </div>
 
       {/* Scores */}
-      <div style={{ display: 'flex', gap: 12, alignItems: 'baseline', marginBottom: 8 }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 12,
+          alignItems: "baseline",
+          marginBottom: 8,
+        }}
+      >
         {patient.age && (
-          <span style={{
-            fontFamily: 'DM Mono, monospace', fontSize: 20,
-            fontWeight: 400, color: 'var(--cl-text)',
-          }}>
-            {patient.age}<span style={{ fontSize: 11, color: 'var(--cl-text3)' }}>yr</span>
+          <span
+            style={{
+              fontFamily: "DM Mono, monospace",
+              fontSize: 20,
+              fontWeight: 400,
+              color: "var(--cl-text)",
+            }}
+          >
+            {patient.age}
+            <span style={{ fontSize: 11, color: "var(--cl-text3)" }}>yr</span>
           </span>
         )}
         {patient.cervical_probability != null && (
-          <span style={{ fontSize: 12, color: 'var(--cl-text3)' }}>
-            Cervical{' '}
-            <span style={{
-              fontFamily: 'DM Mono, monospace',
-              color: RISK_COLOR[patient.risk_tier],
-              fontWeight: 500,
-            }}>
+          <span style={{ fontSize: 12, color: "var(--cl-text3)" }}>
+            Cervical{" "}
+            <span
+              style={{
+                fontFamily: "DM Mono, monospace",
+                color: RISK_COLOR[patient.risk_tier],
+                fontWeight: 500,
+              }}
+            >
               {Math.round(patient.cervical_probability * 100)}%
             </span>
           </span>
         )}
         {patient.oral_score != null && (
-          <span style={{ fontSize: 12, color: 'var(--cl-text3)' }}>
-            Oral{' '}
-            <span style={{ fontFamily: 'DM Mono, monospace', color: 'var(--cl-elevated)', fontWeight: 500 }}>
+          <span style={{ fontSize: 12, color: "var(--cl-text3)" }}>
+            Oral{" "}
+            <span
+              style={{
+                fontFamily: "DM Mono, monospace",
+                color: "var(--cl-elevated)",
+                fontWeight: 500,
+              }}
+            >
               {patient.oral_score}/30
             </span>
           </span>
@@ -285,83 +473,125 @@ function PatientListCard({
       </div>
 
       {/* Risk factors */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
         {(patient.top_risk_factors || []).slice(0, 2).map((f, i) => (
-          <span key={i} style={{
-            padding: '3px 8px', borderRadius: 4, fontSize: 10, display: 'block',
-            background: i === 0 ? RISK_BG[patient.risk_tier] : 'var(--cl-surface-2)',
-            color: i === 0 ? RISK_COLOR[patient.risk_tier] : 'var(--cl-text3)',
-            border: `1px solid ${i === 0 ? RISK_BORDER[patient.risk_tier] : 'var(--cl-border)'}`,
-            width: 'fit-content',
-          }}>{f}</span>
+          <span
+            key={i}
+            style={{
+              padding: "3px 8px",
+              borderRadius: 4,
+              fontSize: 10,
+              display: "block",
+              background:
+                i === 0 ? RISK_BG[patient.risk_tier] : "var(--cl-surface-2)",
+              color:
+                i === 0 ? RISK_COLOR[patient.risk_tier] : "var(--cl-text3)",
+              border: `1px solid ${i === 0 ? RISK_BORDER[patient.risk_tier] : "var(--cl-border)"}`,
+              width: "fit-content",
+            }}
+          >
+            {f}
+          </span>
         ))}
       </div>
 
       {/* Timestamp */}
-      <p style={{
-        fontSize: 10, color: 'var(--cl-text4)',
-        fontFamily: 'DM Mono, monospace',
-        marginTop: 'auto',
-      }}>
+      <p
+        style={{
+          fontSize: 10,
+          color: "var(--cl-text4)",
+          fontFamily: "DM Mono, monospace",
+          marginTop: "auto",
+        }}
+      >
         {timeAgo(patient.created_at)} · {formatChwLabel(patient.chw_phone)}
       </p>
     </div>
-  )
+  );
 }
 
 // ── Detail panel ──────────────────────────────────────────────────────────────
 function DetailPanel({ patient }: { patient: Patient | null }) {
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState(false);
 
   function handleCopy() {
     if (patient?.referral_letter) {
-      navigator.clipboard.writeText(patient.referral_letter)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      navigator.clipboard.writeText(patient.referral_letter);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   }
 
   if (!patient) {
     return (
-      <div className="cl-card" style={{ padding: 0, overflow: 'hidden', height: '100%' }}>
+      <div
+        className="cl-card"
+        style={{ padding: 0, overflow: "hidden", height: "100%" }}
+      >
         <EmptyState
           icon={<ClipboardList size={32} />}
           title="Select a patient"
           subtitle="Click any patient card to view their full clinical record and referral letter."
         />
       </div>
-    )
+    );
   }
 
-  const hasBetel = (patient.top_risk_factors || []).some(f =>
-    f.toLowerCase().includes('betel') || f.toLowerCase().includes('areca')
-  )
+  const hasBetel = (patient.top_risk_factors || []).some(
+    (f) =>
+      f.toLowerCase().includes("betel") || f.toLowerCase().includes("areca"),
+  );
 
   return (
-    <div className="cl-card" style={{ overflow: 'hidden' }}>
+    <div className="cl-card" style={{ overflow: "hidden" }}>
       {/* Tier accent bar */}
-      <div style={{
-        height: 4,
-        background: `linear-gradient(90deg, ${RISK_COLOR[patient.risk_tier]}, transparent)`,
-      }} />
+      <div
+        style={{
+          height: 4,
+          background: `linear-gradient(90deg, ${RISK_COLOR[patient.risk_tier]}, transparent)`,
+        }}
+      />
 
       {/* Tier header */}
-      <div style={{
-        padding: '12px 18px',
-        background: RISK_BG[patient.risk_tier],
-        borderBottom: '1px solid var(--cl-border)',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      }}>
+      <div
+        style={{
+          padding: "12px 18px",
+          background: RISK_BG[patient.risk_tier],
+          borderBottom: "1px solid var(--cl-border)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
         <RiskBadge tier={patient.risk_tier} />
-        <span style={{ fontSize: 10, color: 'var(--cl-text4)', fontFamily: 'DM Mono, monospace' }}>
+        <span
+          style={{
+            fontSize: 10,
+            color: "var(--cl-text4)",
+            fontFamily: "DM Mono, monospace",
+          }}
+        >
           {timeAgo(patient.created_at)}
         </span>
       </div>
 
-      <div style={{ padding: '18px', overflowY: 'auto', maxHeight: 'calc(100vh - 220px)' }}>
-
+      <div
+        style={{
+          padding: "18px",
+          overflowY: "auto",
+          maxHeight: "calc(100vh - 220px)",
+        }}
+      >
         {/* Score rings */}
-        <div style={{ display: 'flex', gap: 12, marginBottom: 18, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            marginBottom: 18,
+            flexWrap: "wrap",
+            alignItems: "flex-end",
+          }}
+        >
           {patient.cervical_probability != null && (
             <ScoreRing
               value={Math.round(patient.cervical_probability * 100)}
@@ -374,24 +604,46 @@ function DetailPanel({ patient }: { patient: Patient | null }) {
             <ScoreRing
               value={patient.oral_score}
               max={30}
-              color={patient.oral_score >= 20 ? 'var(--cl-high)' : patient.oral_score >= 12 ? 'var(--cl-elevated)' : 'var(--cl-low)'}
+              color={
+                patient.oral_score >= 20
+                  ? "var(--cl-high)"
+                  : patient.oral_score >= 12
+                    ? "var(--cl-elevated)"
+                    : "var(--cl-low)"
+              }
               label="Oral /30"
             />
           )}
           {patient.age && (
-            <div style={{ textAlign: 'center' }}>
-              <div style={{
-                width: 62, height: 62, borderRadius: 10,
-                background: 'var(--cl-surface-2)',
-                border: '1px solid var(--cl-border)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <span style={{
-                  fontFamily: 'DM Mono, monospace', fontSize: 18,
-                  fontWeight: 400, color: 'var(--cl-text)',
-                }}>{patient.age}</span>
+            <div style={{ textAlign: "center" }}>
+              <div
+                style={{
+                  width: 62,
+                  height: 62,
+                  borderRadius: 10,
+                  background: "var(--cl-surface-2)",
+                  border: "1px solid var(--cl-border)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "DM Mono, monospace",
+                    fontSize: 18,
+                    fontWeight: 400,
+                    color: "var(--cl-text)",
+                  }}
+                >
+                  {patient.age}
+                </span>
               </div>
-              <p style={{ fontSize: 9, color: 'var(--cl-text4)', marginTop: 4 }}>Age</p>
+              <p
+                style={{ fontSize: 9, color: "var(--cl-text4)", marginTop: 4 }}
+              >
+                Age
+              </p>
             </div>
           )}
           {patient.referral_quality_score && (
@@ -402,61 +654,100 @@ function DetailPanel({ patient }: { patient: Patient | null }) {
         {/* Risk factors */}
         {(patient.top_risk_factors || []).length > 0 && (
           <div style={{ marginBottom: 18 }}>
-            <p className="cl-label" style={{ marginBottom: 8 }}>Risk Factors</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <p className="cl-label" style={{ marginBottom: 8 }}>
+              Risk Factors
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {patient.top_risk_factors.map((f, i) => {
-                const isBetelFactor = f.toLowerCase().includes('betel') || f.toLowerCase().includes('areca')
-                const borderColor   = isBetelFactor ? 'var(--cl-elevated)'
-                  : i === 0 ? 'var(--cl-high)' : 'var(--cl-border-mid)'
+                const isBetelFactor =
+                  f.toLowerCase().includes("betel") ||
+                  f.toLowerCase().includes("areca");
+                const borderColor = isBetelFactor
+                  ? "var(--cl-elevated)"
+                  : i === 0
+                    ? "var(--cl-high)"
+                    : "var(--cl-border-mid)";
                 return (
-                  <div key={i} style={{
-                    padding: '7px 12px',
-                    background: isBetelFactor ? 'var(--cl-elev-bg)' : 'var(--cl-surface-2)',
-                    borderRadius: 8,
-                    borderLeft: `3px solid ${borderColor}`,
-                    border: '1px solid var(--cl-border)',
-                    borderLeftWidth: 3,
-                    borderLeftColor: borderColor,
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div
+                    key={i}
+                    style={{
+                      padding: "7px 12px",
+                      background: isBetelFactor
+                        ? "var(--cl-elev-bg)"
+                        : "var(--cl-surface-2)",
+                      borderRadius: 8,
+                      borderLeft: `3px solid ${borderColor}`,
+                      border: "1px solid var(--cl-border)",
+                      borderLeftWidth: 3,
+                      borderLeftColor: borderColor,
+                    }}
+                  >
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 8 }}
+                    >
                       {isBetelFactor && <Leaf size={12} />}
-                      <p style={{ fontSize: 12, color: 'var(--cl-text2)', lineHeight: 1.4, flex: 1 }}>{f}</p>
+                      <p
+                        style={{
+                          fontSize: 12,
+                          color: "var(--cl-text2)",
+                          lineHeight: 1.4,
+                          flex: 1,
+                        }}
+                      >
+                        {f}
+                      </p>
                       {isBetelFactor && (
-                        <span style={{
-                          fontSize: 9, color: 'var(--cl-elevated)',
-                          background: 'var(--cl-elev-bg)',
-                          border: '1px solid var(--cl-elev-border)',
-                          padding: '1px 6px', borderRadius: 4,
-                          whiteSpace: 'nowrap', flexShrink: 0,
-                        }}>Primary carcinogen</span>
+                        <span
+                          style={{
+                            fontSize: 9,
+                            color: "var(--cl-elevated)",
+                            background: "var(--cl-elev-bg)",
+                            border: "1px solid var(--cl-elev-border)",
+                            padding: "1px 6px",
+                            borderRadius: 4,
+                            whiteSpace: "nowrap",
+                            flexShrink: 0,
+                          }}
+                        >
+                          Primary carcinogen
+                        </span>
                       )}
                     </div>
                   </div>
-                )
+                );
               })}
             </div>
           </div>
         )}
 
         {/* Mark referred button */}
-        {patient.risk_tier === 'HIGH' && !patient.referral_generated && (
+        {patient.risk_tier === "HIGH" && !patient.referral_generated && (
           <button
             className="motion-pressable"
             onClick={async () => {
-              await supabase.from('patients')
+              await supabase
+                .from("patients")
                 .update({ referral_generated: true })
-                .eq('id', patient.id)
-              window.location.reload()
+                .eq("id", patient.id);
+              window.location.reload();
             }}
             style={{
-              width: '100%', padding: '9px', borderRadius: 8, marginBottom: 16,
-              background: 'var(--cl-blue-bg)',
-              border: '1px solid var(--cl-blue-border)',
-              color: 'var(--cl-blue)', fontSize: 12, fontWeight: 500, cursor: 'pointer',
-              fontFamily: 'DM Sans, sans-serif',
+              width: "100%",
+              padding: "9px",
+              borderRadius: 8,
+              marginBottom: 16,
+              background: "var(--cl-blue-bg)",
+              border: "1px solid var(--cl-blue-border)",
+              color: "var(--cl-blue)",
+              fontSize: 12,
+              fontWeight: 500,
+              cursor: "pointer",
+              fontFamily: "DM Sans, sans-serif",
             }}
           >
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <span
+              style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
+            >
               <ArrowUpRight size={12} />
               Mark as Referred
             </span>
@@ -477,232 +768,360 @@ function DetailPanel({ patient }: { patient: Patient | null }) {
 
         {/* Raw screening data */}
         <details>
-          <summary style={{
-            fontSize: 11, color: 'var(--cl-text4)',
-            cursor: 'pointer', userSelect: 'none', listStyle: 'none',
-          }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <summary
+            style={{
+              fontSize: 11,
+              color: "var(--cl-text4)",
+              cursor: "pointer",
+              userSelect: "none",
+              listStyle: "none",
+            }}
+          >
+            <span
+              style={{ display: "inline-flex", alignItems: "center", gap: 4 }}
+            >
               <ChevronRight size={12} />
               Raw screening data
             </span>
           </summary>
-          <pre style={{
-            marginTop: 8, fontSize: 10, color: 'var(--cl-text3)',
-            fontFamily: 'DM Mono, monospace',
-            background: 'var(--cl-surface-2)',
-            borderRadius: 8, padding: '10px 12px',
-            overflowX: 'auto', border: '1px solid var(--cl-border)',
-          }}>
+          <pre
+            style={{
+              marginTop: 8,
+              fontSize: 10,
+              color: "var(--cl-text3)",
+              fontFamily: "DM Mono, monospace",
+              background: "var(--cl-surface-2)",
+              borderRadius: 8,
+              padding: "10px 12px",
+              overflowX: "auto",
+              border: "1px solid var(--cl-border)",
+            }}
+          >
             {JSON.stringify(patient.raw_screening_data, null, 2)}
           </pre>
         </details>
       </div>
     </div>
-  )
+  );
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function PatientsPage() {
-  const [patients, setPatients] = useState<Patient[]>([])
-  const [loading,  setLoading]  = useState(true)
-  const [filter,   setFilter]   = useState<RiskTier | 'ALL'>('ALL')
-  const [search,   setSearch]   = useState('')
-  const [selected, setSelected] = useState<Patient | null>(null)
-  const [editingPatient, setEditingPatient] = useState<Patient | null>(null)
-  const [editAge, setEditAge] = useState('')
-  const [editTier, setEditTier] = useState<RiskTier>('LOW')
-  const [editReferral, setEditReferral] = useState(false)
-  const [editFactors, setEditFactors] = useState('')
-  const [deletingPatientId, setDeletingPatientId] = useState<string | null>(null)
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<RiskTier | "ALL">("ALL");
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<Patient | null>(null);
+  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
+  const [editAge, setEditAge] = useState("");
+  const [editTier, setEditTier] = useState<RiskTier>("LOW");
+  const [editReferral, setEditReferral] = useState(false);
+  const [editFactors, setEditFactors] = useState("");
+  const [deletingPatientId, setDeletingPatientId] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
-    if (!editingPatient) return
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    if (!editingPatient) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = prevOverflow
-    }
-  }, [editingPatient])
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [editingPatient]);
 
   useEffect(() => {
-    supabase.from('patients').select('*')
-      .order('created_at', { ascending: false }).limit(200)
+    supabase
+      .from("patients")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(200)
       .then(({ data }) => {
-        if (data) setPatients(data as Patient[])
-        setLoading(false)
-      })
-  }, [])
+        if (data) setPatients(data as Patient[]);
+        setLoading(false);
+      });
+  }, []);
 
   // Auto-select most urgent on load
   useEffect(() => {
     if (patients.length > 0 && !selected) {
-      const urgent = patients.find(p => p.risk_tier === 'HIGH') || patients[0]
-      if (urgent) setSelected(urgent)
+      const urgent =
+        patients.find((p) => p.risk_tier === "HIGH") || patients[0];
+      if (urgent) setSelected(urgent);
     }
-  }, [patients])
+  }, [patients]);
 
   function openEditModal(patient: Patient) {
-    setEditingPatient(patient)
-    setEditAge(patient.age != null ? String(patient.age) : '')
-    setEditTier(patient.risk_tier)
-    setEditReferral(patient.referral_generated)
-    setEditFactors((patient.top_risk_factors || []).join(', '))
+    setEditingPatient(patient);
+    setEditAge(patient.age != null ? String(patient.age) : "");
+    setEditTier(patient.risk_tier);
+    setEditReferral(patient.referral_generated);
+    setEditFactors((patient.top_risk_factors || []).join(", "));
   }
 
   async function savePatientEdit() {
-    if (!editingPatient) return
-    const ageNum = editAge.trim() ? Number(editAge.trim()) : null
+    if (!editingPatient) return;
+    const ageNum = editAge.trim() ? Number(editAge.trim()) : null;
     const topFactors = editFactors
-      .split(',')
-      .map(f => f.trim())
-      .filter(Boolean)
+      .split(",")
+      .map((f) => f.trim())
+      .filter(Boolean);
 
     const payload = {
       age: Number.isFinite(ageNum as number) ? ageNum : null,
       risk_tier: editTier,
       referral_generated: editReferral,
       top_risk_factors: topFactors,
-    }
+    };
 
-    const { error } = await supabase.from('patients').update(payload).eq('id', editingPatient.id)
-    if (error) return
+    const { error } = await supabase
+      .from("patients")
+      .update(payload)
+      .eq("id", editingPatient.id);
+    if (error) return;
 
-    setPatients(prev => prev.map(p => p.id === editingPatient.id ? { ...p, ...payload } : p))
-    setSelected(prev => prev?.id === editingPatient.id ? { ...prev, ...payload } : prev)
-    setEditingPatient(null)
+    setPatients((prev) =>
+      prev.map((p) => (p.id === editingPatient.id ? { ...p, ...payload } : p)),
+    );
+    setSelected((prev) =>
+      prev?.id === editingPatient.id ? { ...prev, ...payload } : prev,
+    );
+    setEditingPatient(null);
   }
 
   async function deletePatient(patient: Patient) {
-    const ok = window.confirm('Delete this patient record permanently?')
-    if (!ok) return
-    setDeletingPatientId(patient.id)
-    const { error } = await supabase.from('patients').delete().eq('id', patient.id)
-    setDeletingPatientId(null)
-    if (error) return
-    setPatients(prev => prev.filter(p => p.id !== patient.id))
-    if (selected?.id === patient.id) setSelected(null)
+    const ok = window.confirm("Delete this patient record permanently?");
+    if (!ok) return;
+    setDeletingPatientId(patient.id);
+    const { error } = await supabase
+      .from("patients")
+      .delete()
+      .eq("id", patient.id);
+    setDeletingPatientId(null);
+    if (error) return;
+    setPatients((prev) => prev.filter((p) => p.id !== patient.id));
+    if (selected?.id === patient.id) setSelected(null);
   }
 
-  const filtered = patients.filter(p => {
-    const tierOk   = filter === 'ALL' || p.risk_tier === filter
-    const searchOk = !search ||
+  const filtered = patients.filter((p) => {
+    const tierOk = filter === "ALL" || p.risk_tier === filter;
+    const searchOk =
+      !search ||
       p.chw_phone.includes(search) ||
-      (p.top_risk_factors || []).some(f => f.toLowerCase().includes(search.toLowerCase()))
-    return tierOk && searchOk
-  })
+      (p.top_risk_factors || []).some((f) =>
+        f.toLowerCase().includes(search.toLowerCase()),
+      );
+    return tierOk && searchOk;
+  });
 
-  const high     = patients.filter(p => p.risk_tier === 'HIGH').length
-  const elevated = patients.filter(p => p.risk_tier === 'ELEVATED').length
-  const referred = patients.filter(p => p.referral_generated).length
+  const high = patients.filter((p) => p.risk_tier === "HIGH").length;
+  const elevated = patients.filter((p) => p.risk_tier === "ELEVATED").length;
+  const referred = patients.filter((p) => p.referral_generated).length;
 
-  const FILTERS: (RiskTier | 'ALL')[] = ['ALL', 'HIGH', 'ELEVATED', 'LOW']
+  const FILTERS: (RiskTier | "ALL")[] = ["ALL", "HIGH", "ELEVATED", "LOW"];
   const FILTER_COLORS: Record<string, string> = {
-    ALL:      'var(--cl-primary)',
-    HIGH:     'var(--cl-high)',
-    ELEVATED: 'var(--cl-elevated)',
-    LOW:      'var(--cl-low)',
-  }
+    ALL: "var(--cl-primary)",
+    HIGH: "var(--cl-high)",
+    ELEVATED: "var(--cl-elevated)",
+    LOW: "var(--cl-low)",
+  };
   const FILTER_BG: Record<string, string> = {
-    ALL:      'var(--cl-primary-bg)',
-    HIGH:     'var(--cl-high-bg)',
-    ELEVATED: 'var(--cl-elev-bg)',
-    LOW:      'var(--cl-low-bg)',
-  }
+    ALL: "var(--cl-primary-bg)",
+    HIGH: "var(--cl-high-bg)",
+    ELEVATED: "var(--cl-elev-bg)",
+    LOW: "var(--cl-low-bg)",
+  };
 
   return (
-    <div className="clinical" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-
+    <div
+      className="clinical"
+      style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
+    >
       <ClinicalHeader
         rightSlot={
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center', fontSize: 12 }}>
-            <span style={{ color: 'var(--cl-high)', fontFamily: 'DM Mono, monospace' }}>{high}</span>
-            <span style={{ color: 'var(--cl-text4)' }}>high</span>
-            <span style={{ color: 'var(--cl-border-mid)' }}>·</span>
-            <span style={{ color: 'var(--cl-elevated)', fontFamily: 'DM Mono, monospace' }}>{elevated}</span>
-            <span style={{ color: 'var(--cl-text4)' }}>elevated</span>
-            <span style={{ color: 'var(--cl-border-mid)' }}>·</span>
-            <span style={{ color: 'var(--cl-blue)', fontFamily: 'DM Mono, monospace' }}>{referred}</span>
-            <span style={{ color: 'var(--cl-text4)' }}>referred</span>
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              alignItems: "center",
+              fontSize: 12,
+            }}
+          >
+            <span
+              style={{
+                color: "var(--cl-high)",
+                fontFamily: "DM Mono, monospace",
+              }}
+            >
+              {high}
+            </span>
+            <span style={{ color: "var(--cl-text4)" }}>high</span>
+            <span style={{ color: "var(--cl-border-mid)" }}>·</span>
+            <span
+              style={{
+                color: "var(--cl-elevated)",
+                fontFamily: "DM Mono, monospace",
+              }}
+            >
+              {elevated}
+            </span>
+            <span style={{ color: "var(--cl-text4)" }}>elevated</span>
+            <span style={{ color: "var(--cl-border-mid)" }}>·</span>
+            <span
+              style={{
+                color: "var(--cl-blue)",
+                fontFamily: "DM Mono, monospace",
+              }}
+            >
+              {referred}
+            </span>
+            <span style={{ color: "var(--cl-text4)" }}>referred</span>
           </div>
         }
       />
 
-      <main className="motion-enter" style={{ flex: 1, maxWidth: 1280, margin: '0 auto', padding: '24px', width: '100%', display: 'flex', flexDirection: 'column', gap: 16 }}>
-
+      <main
+        className="motion-enter"
+        style={{
+          flex: 1,
+          maxWidth: 1280,
+          margin: "0 auto",
+          padding: "24px",
+          width: "100%",
+          display: "flex",
+          flexDirection: "column",
+          gap: 16,
+        }}
+      >
         {/* Search + filters */}
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
-            <span style={{
-              position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
-              fontSize: 13, color: 'var(--cl-text4)',
-            }}>
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
+          <div style={{ position: "relative", flex: 1, minWidth: 220 }}>
+            <span
+              style={{
+                position: "absolute",
+                left: 10,
+                top: "50%",
+                transform: "translateY(-50%)",
+                fontSize: 13,
+                color: "var(--cl-text4)",
+              }}
+            >
               <ClipboardList size={12} />
             </span>
             <input
-              type="text" placeholder="Search by CHW phone or risk factor..."
-              value={search} onChange={e => setSearch(e.target.value)}
+              type="text"
+              placeholder="Search by CHW phone or risk factor..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
               style={{
-                width: '100%', padding: '8px 12px 8px 30px',
-                background: 'var(--cl-surface)',
-                border: '1px solid var(--cl-border)',
-                borderRadius: 9, fontSize: 13, color: 'var(--cl-text)',
-                outline: 'none', fontFamily: 'DM Sans, sans-serif',
-                boxShadow: 'var(--cl-shadow-sm)',
+                width: "100%",
+                padding: "8px 12px 8px 30px",
+                background: "var(--cl-surface)",
+                border: "1px solid var(--cl-border)",
+                borderRadius: 9,
+                fontSize: 13,
+                color: "var(--cl-text)",
+                outline: "none",
+                fontFamily: "DM Sans, sans-serif",
+                boxShadow: "var(--cl-shadow-sm)",
               }}
             />
           </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {FILTERS.map(t => (
-              <button key={t} className="motion-pressable" onClick={() => setFilter(t)} style={{
-                padding: '7px 14px', borderRadius: 9, fontSize: 11, fontWeight: 500,
-                cursor: 'pointer', transition: 'all 0.15s',
-                background: filter === t ? FILTER_COLORS[t] : 'var(--cl-surface)',
-                color: filter === t ? '#fff' : 'var(--cl-text3)',
-                border: `1px solid ${filter === t ? 'transparent' : 'var(--cl-border)'}`,
-                fontFamily: 'DM Sans, sans-serif',
-                boxShadow: filter === t ? 'none' : 'var(--cl-shadow-sm)',
-              }}>{t}</button>
+          <div style={{ display: "flex", gap: 6 }}>
+            {FILTERS.map((t) => (
+              <button
+                key={t}
+                className="motion-pressable"
+                onClick={() => setFilter(t)}
+                style={{
+                  padding: "7px 14px",
+                  borderRadius: 9,
+                  fontSize: 11,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                  background:
+                    filter === t ? FILTER_COLORS[t] : "var(--cl-surface)",
+                  color: filter === t ? "#fff" : "var(--cl-text3)",
+                  border: `1px solid ${filter === t ? "transparent" : "var(--cl-border)"}`,
+                  fontFamily: "DM Sans, sans-serif",
+                  boxShadow: filter === t ? "none" : "var(--cl-shadow-sm)",
+                }}
+              >
+                {t}
+              </button>
             ))}
           </div>
         </div>
 
         {/* Two-panel layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: 16, alignItems: 'start' }}>
-
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 400px",
+            gap: 16,
+            alignItems: "start",
+          }}
+        >
           {/* List */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {loading ? (
-              Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} height={110} borderRadius={10} />)
+              Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} height={110} borderRadius={10} />
+              ))
             ) : filtered.length === 0 ? (
-              <EmptyState icon={<ClipboardList size={32} />} title="No patients found" />
-            ) : filtered.map(p => (
-              <PatientListCard
-                key={p.id}
-                patient={p}
-                selected={selected?.id === p.id}
-                onClick={() => {
-                  setSelected(p)
-                }}
+              <EmptyState
+                icon={<ClipboardList size={32} />}
+                title="No patients found"
               />
-            ))}
+            ) : (
+              filtered.map((p) => (
+                <PatientListCard
+                  key={p.id}
+                  patient={p}
+                  selected={selected?.id === p.id}
+                  onClick={() => {
+                    setSelected(p);
+                  }}
+                />
+              ))
+            )}
           </div>
 
           {/* Detail panel */}
-          <div style={{ position: 'sticky', top: 82 }}>
+          <div style={{ position: "sticky", top: 82 }}>
             <DetailPanel patient={selected} />
             {selected && (
-              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                 <button
                   className="motion-pressable"
                   onClick={() => openEditModal(selected)}
                   style={{
-                    flex: 1, borderRadius: 8, border: '1px solid var(--cl-border)',
-                    background: 'var(--cl-surface)', color: 'var(--cl-text3)',
-                    fontSize: 12, padding: '8px 10px', cursor: 'pointer',
-                    fontFamily: 'DM Sans, sans-serif',
+                    flex: 1,
+                    borderRadius: 8,
+                    border: "1px solid var(--cl-border)",
+                    background: "var(--cl-surface)",
+                    color: "var(--cl-text3)",
+                    fontSize: 12,
+                    padding: "8px 10px",
+                    cursor: "pointer",
+                    fontFamily: "DM Sans, sans-serif",
                   }}
                 >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                    }}
+                  >
                     <Pencil size={12} />
                     Edit
                   </span>
@@ -712,16 +1131,29 @@ export default function PatientsPage() {
                   onClick={() => deletePatient(selected)}
                   disabled={deletingPatientId === selected.id}
                   style={{
-                    flex: 1, borderRadius: 8, border: '1px solid var(--cl-high-border)',
-                    background: 'var(--cl-high-bg)', color: 'var(--cl-high)',
-                    fontSize: 12, padding: '8px 10px', cursor: 'pointer',
-                    fontFamily: 'DM Sans, sans-serif',
+                    flex: 1,
+                    borderRadius: 8,
+                    border: "1px solid var(--cl-high-border)",
+                    background: "var(--cl-high-bg)",
+                    color: "var(--cl-high)",
+                    fontSize: 12,
+                    padding: "8px 10px",
+                    cursor: "pointer",
+                    fontFamily: "DM Sans, sans-serif",
                     opacity: deletingPatientId === selected.id ? 0.65 : 1,
                   }}
                 >
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                    }}
+                  >
                     <Trash2 size={12} />
-                    {deletingPatientId === selected.id ? 'Deleting...' : 'Delete'}
+                    {deletingPatientId === selected.id
+                      ? "Deleting..."
+                      : "Delete"}
                   </span>
                 </button>
               </div>
@@ -732,109 +1164,181 @@ export default function PatientsPage() {
 
       <ClinicalFooter />
       {/* ── START MODAL FIX ────────────────────────────────────────────── */}
-      {editingPatient && typeof document !== 'undefined' && createPortal(
-        <div
-          onClick={() => setEditingPatient(null)}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 220,
-            background: 'rgba(5,8,12,0.6)',
-            display: 'flex',              // Flex layout for safe vertical centering
-            alignItems: 'center',
-            justifyContent: 'center',     // Anchor horizontal center
-            padding: '5vh 16px',          // Give some breathing room
-            overflowY: 'auto'             // Make the background itself scrollable
-          }}
-        >
+      {editingPatient &&
+        typeof document !== "undefined" &&
+        createPortal(
           <div
-            onClick={(e) => e.stopPropagation()}
-            className="cl-card"
+            onClick={() => setEditingPatient(null)}
             style={{
-              width: 'min(540px, 100%)',
-              margin: 'auto',             // Centers vertically when height allows
-              maxHeight: '85vh',          // Prevents the modal from spanning screen entirely
-              overflowY: 'auto',
-              padding: '18px 20px',
+              position: "fixed",
+              inset: 0,
+              zIndex: 220,
+              background: "rgba(5,8,12,0.6)",
+              display: "flex", // Flex layout for safe vertical centering
+              alignItems: "center",
+              justifyContent: "center", // Anchor horizontal center
+              padding: "5vh 16px", // Give some breathing room
+              overflowY: "auto", // Make the background itself scrollable
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--cl-text)' }}>Edit patient</p>
-              <button
-                onClick={() => setEditingPatient(null)}
-                style={{ background: 'none', border: 'none', color: 'var(--cl-text4)', cursor: 'pointer' }}
-              >
-                <X size={14} />
-              </button>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <input
-                type="number"
-                placeholder="Age"
-                value={editAge}
-                onChange={(e) => setEditAge(e.target.value)}
-                style={{
-                  padding: '8px 10px', borderRadius: 8, border: '1px solid var(--cl-border)',
-                  background: 'var(--cl-surface)', color: 'var(--cl-text)', fontSize: 12,
-                }}
-              />
-              <select
-                value={editTier}
-                onChange={(e) => setEditTier(e.target.value as RiskTier)}
-                style={{
-                  padding: '8px 10px', borderRadius: 8, border: '1px solid var(--cl-border)',
-                  background: 'var(--cl-surface)', color: 'var(--cl-text)', fontSize: 12,
-                }}
-              >
-                <option value="HIGH">HIGH</option>
-                <option value="ELEVATED">ELEVATED</option>
-                <option value="LOW">LOW</option>
-              </select>
-            </div>
-
-            <textarea
-              placeholder="Risk factors (comma separated)"
-              value={editFactors}
-              onChange={(e) => setEditFactors(e.target.value)}
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="cl-card"
               style={{
-                marginTop: 10, width: '100%', minHeight: 90, resize: 'vertical',
-                padding: '10px', borderRadius: 8, border: '1px solid var(--cl-border)',
-                background: 'var(--cl-surface)', color: 'var(--cl-text)', fontSize: 12,
+                width: "min(540px, 100%)",
+                margin: "auto", // Centers vertically when height allows
+                maxHeight: "85vh", // Prevents the modal from spanning screen entirely
+                overflowY: "auto",
+                padding: "18px 20px",
               }}
-            />
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 12,
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    color: "var(--cl-text)",
+                  }}
+                >
+                  Edit patient
+                </p>
+                <button
+                  onClick={() => setEditingPatient(null)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "var(--cl-text4)",
+                    cursor: "pointer",
+                  }}
+                >
+                  <X size={14} />
+                </button>
+              </div>
 
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, fontSize: 12, color: 'var(--cl-text3)' }}>
-              <input
-                type="checkbox"
-                checked={editReferral}
-                onChange={(e) => setEditReferral(e.target.checked)}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 10,
+                }}
+              >
+                <input
+                  type="number"
+                  placeholder="Age"
+                  value={editAge}
+                  onChange={(e) => setEditAge(e.target.value)}
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: 8,
+                    border: "1px solid var(--cl-border)",
+                    background: "var(--cl-surface)",
+                    color: "var(--cl-text)",
+                    fontSize: 12,
+                  }}
+                />
+                <select
+                  value={editTier}
+                  onChange={(e) => setEditTier(e.target.value as RiskTier)}
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: 8,
+                    border: "1px solid var(--cl-border)",
+                    background: "var(--cl-surface)",
+                    color: "var(--cl-text)",
+                    fontSize: 12,
+                  }}
+                >
+                  <option value="HIGH">HIGH</option>
+                  <option value="ELEVATED">ELEVATED</option>
+                  <option value="LOW">LOW</option>
+                </select>
+              </div>
+
+              <textarea
+                placeholder="Risk factors (comma separated)"
+                value={editFactors}
+                onChange={(e) => setEditFactors(e.target.value)}
+                style={{
+                  marginTop: 10,
+                  width: "100%",
+                  minHeight: 90,
+                  resize: "vertical",
+                  padding: "10px",
+                  borderRadius: 8,
+                  border: "1px solid var(--cl-border)",
+                  background: "var(--cl-surface)",
+                  color: "var(--cl-text)",
+                  fontSize: 12,
+                }}
               />
-              Mark as referred
-            </label>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
-              <button
-                onClick={() => setEditingPatient(null)}
+              <label
                 style={{
-                  borderRadius: 8, border: '1px solid var(--cl-border)', background: 'var(--cl-surface)',
-                  color: 'var(--cl-text3)', fontSize: 12, padding: '8px 12px', cursor: 'pointer',
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginTop: 10,
+                  fontSize: 12,
+                  color: "var(--cl-text3)",
                 }}
               >
-                Cancel
-              </button>
-              <button
-                onClick={savePatientEdit}
+                <input
+                  type="checkbox"
+                  checked={editReferral}
+                  onChange={(e) => setEditReferral(e.target.checked)}
+                />
+                Mark as referred
+              </label>
+
+              <div
                 style={{
-                  borderRadius: 8, border: '1px solid rgba(22,101,52,0.3)', background: 'var(--cl-primary-bg)',
-                  color: 'var(--cl-primary)', fontSize: 12, padding: '8px 12px', cursor: 'pointer',
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: 8,
+                  marginTop: 14,
                 }}
               >
-                Save changes
-              </button>
+                <button
+                  onClick={() => setEditingPatient(null)}
+                  style={{
+                    borderRadius: 8,
+                    border: "1px solid var(--cl-border)",
+                    background: "var(--cl-surface)",
+                    color: "var(--cl-text3)",
+                    fontSize: 12,
+                    padding: "8px 12px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={savePatientEdit}
+                  style={{
+                    borderRadius: 8,
+                    border: "1px solid rgba(22,101,52,0.3)",
+                    background: "var(--cl-primary-bg)",
+                    color: "var(--cl-primary)",
+                    fontSize: 12,
+                    padding: "8px 12px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Save changes
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      , document.body)}
+          </div>,
+          document.body,
+        )}
       {/* ── END MODAL FIX ──────────────────────────────────────────────── */}
     </div>
-  )
+  );
 }
