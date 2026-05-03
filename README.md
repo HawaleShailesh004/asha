@@ -137,7 +137,6 @@ Create `frontend/.env.local`:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_API_URLS=http://localhost:8000,https://asha-production-7e1d.up.railway.app
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
@@ -283,7 +282,7 @@ Expected: HIGH RISK result + referral letter
 
 1. Connect GitHub repo to Vercel
 2. Set root directory: `frontend`
-3. Add environment variables from `.env.local` above (set `NEXT_PUBLIC_API_URLS` with both live/local backends if you want automatic failover)
+3. Add environment variables from `.env.local` above (set `NEXT_PUBLIC_API_URL` to your live backend in production)
 4. Deploy
 
 ---
@@ -320,8 +319,6 @@ Run these after every deployment:
 | `ENV` | Backend | `development` skips Twilio signature validation helper |
 | `UVICORN_RELOAD` | Backend | `true` in dev only, `false` in production |
 | `NEXT_PUBLIC_API_URL` | Frontend | Railway URL in production, `http://localhost:8000` in dev |
-| `NEXT_PUBLIC_API_URLS` | Frontend | Comma-separated backend URLs; app probes `/health` and uses fastest healthy backend first |
-| `BACKEND_URLS` | Frontend Server Runtime | Optional private comma-separated backend URLs used by Next.js API routes |
 | `NEXT_PUBLIC_SUPABASE_URL` | Frontend | Same as backend SUPABASE_URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Frontend | Anon key (read-only RLS) |
 

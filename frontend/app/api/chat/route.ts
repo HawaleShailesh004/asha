@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   const backends = getBackendBases()
   if (!backends.length) {
     return NextResponse.json(
-      { error: 'backend config missing', detail: 'Set NEXT_PUBLIC_API_URLS or BACKEND_URLS in Vercel env.' },
+      { error: 'backend config missing', detail: 'Set NEXT_PUBLIC_API_URL in Vercel env.' },
       { status: 500 }
     )
   }

@@ -1,5 +1,4 @@
 const DEFAULT_BACKEND = 'http://127.0.0.1:8000'
-const PRODUCTION_FALLBACK_BACKEND = 'https://asha-production-7e1d.up.railway.app'
 const HEALTH_PATH = '/health'
 const HEALTH_TIMEOUT_MS = 7000
 
@@ -23,23 +22,11 @@ function splitBackends(raw: string | undefined): string[] {
 }
 
 export function getBackendBases(): string[] {
-  const fromPrivateList = splitBackends(process.env.BACKEND_URLS)
-  const fromPublicList = splitBackends(process.env.NEXT_PUBLIC_API_URLS)
-  const fromPrivateSingle = splitBackends(process.env.API_URL)
-  const fromPublicSingle = splitBackends(process.env.NEXT_PUBLIC_API_URL)
-
-  const merged = [
-    ...fromPrivateList,
-    ...fromPublicList,
-    ...fromPrivateSingle,
-    ...fromPublicSingle,
-  ]
-
-  const deduped = Array.from(new Set(merged)).filter((url) => /^https?:\/\//i.test(url))
-  if (deduped.length) return deduped
+  const single = normalizeBackend(process.env.NEXT_PUBLIC_API_URL || '')
+  if (/^https?:\/\//i.test(single)) return [single]
 
   const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1'
-  return isProduction ? [PRODUCTION_FALLBACK_BACKEND] : [DEFAULT_BACKEND]
+  return isProduction ? [] : [DEFAULT_BACKEND]
 }
 
 async function probeBackend(base: string): Promise<string> {
