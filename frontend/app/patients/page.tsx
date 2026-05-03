@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import ClinicalHeader from "@/components/ClinicalHeader";
 import ClinicalFooter from "@/components/ClinicalFooter";
+import { getUserFriendlyError } from "@/lib/userError";
 import {
   RiskBadge,
   Skeleton,
@@ -840,7 +841,7 @@ export default function PatientsPage() {
       setPatients((data || []) as Patient[]);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load patient records.");
+      setError(getUserFriendlyError(err, "patients_load"));
     } finally {
       setLoading(false);
     }
@@ -900,7 +901,7 @@ export default function PatientsPage() {
       setEditingPatient(null);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save patient changes.");
+      setError(getUserFriendlyError(err, "patients_save"));
     }
   }
 
@@ -916,7 +917,7 @@ export default function PatientsPage() {
       if (selected?.id === patient.id) setSelected(null);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to delete patient.");
+      setError(getUserFriendlyError(err, "patients_delete"));
     } finally {
       setDeletingPatientId(null);
     }
@@ -1023,7 +1024,7 @@ export default function PatientsPage() {
               fontSize: 12,
             }}
           >
-            Data operation failed: {error}
+            Something went wrong: {error}
           </div>
         )}
         {/* Search + filters */}

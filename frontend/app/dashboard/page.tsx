@@ -25,6 +25,7 @@ import {
 import ClinicalHeader from "@/components/ClinicalHeader";
 import ClinicalFooter from "@/components/ClinicalFooter";
 import FollowUpTracker from "@/components/FollowUpTracker";
+import { getUserFriendlyError } from "@/lib/userError";
 import {
   RiskBadge,
   StatCard,
@@ -698,7 +699,7 @@ export default function Dashboard() {
       setError(null);
     } catch (err) {
       setConnected(false);
-      setError(err instanceof Error ? err.message : "Unable to sync patient data.");
+      setError(getUserFriendlyError(err, "dashboard"));
     } finally {
       setLoading(false);
     }
@@ -804,7 +805,7 @@ export default function Dashboard() {
               fontSize: 12,
             }}
           >
-            Data sync issue: {error}
+            Connection issue: {error}
           </div>
         )}
         {/* ── Impact bar ─────────────────────────────────────────────────── */}

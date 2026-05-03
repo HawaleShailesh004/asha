@@ -6,6 +6,7 @@ import ClinicalHeader from '@/components/ClinicalHeader'
 import ClinicalFooter from '@/components/ClinicalFooter'
 import { Skeleton, EmptyState } from '@/components/ClinicalShared'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { getUserFriendlyError } from '@/lib/userError'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Survivor {
@@ -740,7 +741,7 @@ export default function SurvivorshipPage() {
         if (best) setSelected(best)
         setError(null)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unable to load survivorship data.')
+        setError(getUserFriendlyError(err, 'survivorship_load'))
       } finally {
         setLoading(false)
       }
@@ -794,7 +795,7 @@ export default function SurvivorshipPage() {
       setEditingSurvivor(undefined)
       setError(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to save survivor details.')
+      setError(getUserFriendlyError(err, 'survivorship_save'))
     }
   }
 
@@ -816,7 +817,7 @@ export default function SurvivorshipPage() {
       if (selected?.phone === survivor.phone) setSelected(null)
       setError(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to delete survivor.')
+      setError(getUserFriendlyError(err, 'survivorship_delete'))
     }
   }
 
@@ -846,7 +847,7 @@ export default function SurvivorshipPage() {
       setAddingCheckin(false)
       setError(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to add weekly check-in.')
+      setError(getUserFriendlyError(err, 'survivorship_checkin_add'))
     }
   }
 
@@ -864,7 +865,7 @@ export default function SurvivorshipPage() {
       }))
       setError(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to delete check-in entry.')
+      setError(getUserFriendlyError(err, 'survivorship_checkin_delete'))
     }
   }
 
@@ -928,7 +929,7 @@ export default function SurvivorshipPage() {
             color: 'var(--cl-high)',
             fontSize: 12,
           }}>
-            Data operation failed: {error}
+            Something went wrong: {error}
           </div>
         )}
         {loading ? (

@@ -13,6 +13,7 @@ import {
   ImagePlus,
 } from "lucide-react";
 import AppLogo from "@/components/AppLogo";
+import { getUserFriendlyError } from "@/lib/userError";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type RiskTier = "HIGH" | "ELEVATED" | "LOW";
@@ -1154,8 +1155,8 @@ export default function ChatPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ user_id: uid, message: msg }),
     });
-    if (!res.ok) throw new Error("backend error");
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.detail || data?.error || "backend error");
     return data.reply || "(no reply)";
   }
 
@@ -1193,11 +1194,11 @@ export default function ChatPage() {
         options: riskResult ? undefined : detectOptions(reply),
         riskResult: riskResult || undefined,
       });
-    } catch {
+    } catch (err) {
       addMessage({
         id: uid(),
         role: "asha",
-        text: "⚠️ Could not reach ASHA. Check your connection.",
+        text: `⚠️ ${getUserFriendlyError(err, "chat_send")}`,
         ts: now(),
       });
     }
@@ -1230,11 +1231,11 @@ export default function ChatPage() {
         });
         const data = await res.json();
         addMessage({ id: uid(), role: "asha", text: data.reply, ts: now() });
-      } catch {
+      } catch (err) {
         addMessage({
           id: uid(),
           role: "asha",
-          text: "⚠️ Could not process photo.",
+          text: `⚠️ ${getUserFriendlyError(err, "chat_photo")}`,
           ts: now(),
         });
       }
