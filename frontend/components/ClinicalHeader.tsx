@@ -37,11 +37,13 @@ export default function ClinicalHeader({ rightSlot }: ClinicalHeaderProps) {
           border: '1px solid rgba(22,101,52,0.2)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M7 1C4.24 1 2 3.24 2 6c0 3.31 5 7 5 7s5-3.69 5-7c0-2.76-2.24-5-5-5z"
-              fill="rgba(22,101,52,0.4)" />
-            <circle cx="7" cy="6" r="2" fill="var(--cl-primary)" />
-          </svg>
+          <img
+            src="/asha-mark.svg"
+            alt="ASHA logo"
+            width={14}
+            height={17}
+            style={{ display: 'block' }}
+          />
         </div>
         <div>
           <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--cl-text)', lineHeight: 1, letterSpacing: '-0.01em' }}>

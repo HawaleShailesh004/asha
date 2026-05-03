@@ -69,6 +69,8 @@ const QUICK_COMMANDS = [
 ];
 
 const YES_NO = ["Yes", "No"];
+const AGE_OPTIONS = ["20", "25", "30", "35", "40", "45", "50", "55", "60"];
+const PREG_OPTIONS = ["0", "1", "2", "3", "4", "5", "6", "7", "8+"];
 const CANCER_TYPES = ["Cervical", "Oral", "Breast", "Colon", "Other"];
 const DIET = ["Low (rarely)", "Moderate", "High (daily)"];
 const SCORES = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
@@ -85,8 +87,12 @@ function now() {
 }
 
 function detectOptions(text: string): string[] | undefined {
+  if (/how many times has she been pregnant|how many.*pregnan|pregnanc(y|ies)/i.test(text))
+    return PREG_OPTIONS;
+  if (/how old is the patient|enter.*age|age in years/i.test(text))
+    return AGE_OPTIONS;
   if (
-    /smoke|tobacco|betel|bleed|iud|contraceptiv|pregnant|std|infect|lesion|patch|swallow|alcohol|hygiene|family.*cancer|immune|sun/i.test(
+    /smoke|tobacco|betel|bleed|iud|contraceptiv|std|infect|lesion|patch|swallow|alcohol|hygiene|family.*cancer|immune|sun/i.test(
       text,
     )
   )
@@ -1247,12 +1253,12 @@ export default function ChatPage() {
   return (
     <div
       style={{
-        minHeight: "100vh",
+        height: "100dvh",
+        overflow: "hidden",
         background: "#0a0e14",
         display: "flex",
         flexDirection: "column",
         fontFamily: "DM Sans, system-ui, sans-serif",
-        paddingTop: 12,
         boxSizing: "border-box",
       }}
     >

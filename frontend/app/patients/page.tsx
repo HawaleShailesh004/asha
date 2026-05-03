@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase, Patient, RiskTier } from '@/lib/supabase'
 import { ArrowUpRight, Leaf, ClipboardList, ChevronRight, CheckCircle2, Pencil, Trash2, X } from 'lucide-react'
 import ClinicalHeader from '@/components/ClinicalHeader'
@@ -515,6 +516,15 @@ export default function PatientsPage() {
   const [deletingPatientId, setDeletingPatientId] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!editingPatient) return
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prevOverflow
+    }
+  }, [editingPatient])
+
+  useEffect(() => {
     supabase.from('patients').select('*')
       .order('created_at', { ascending: false }).limit(200)
       .then(({ data }) => {
@@ -721,19 +731,30 @@ export default function PatientsPage() {
       </main>
 
       <ClinicalFooter />
-      {editingPatient && (
+      {/* ── START MODAL FIX ────────────────────────────────────────────── */}
+      {editingPatient && typeof document !== 'undefined' && createPortal(
         <div
           onClick={() => setEditingPatient(null)}
           style={{
             position: 'fixed', inset: 0, zIndex: 220,
-            background: 'rgba(5,8,12,0.6)', display: 'flex',
-            alignItems: 'center', justifyContent: 'center', padding: 16,
+            background: 'rgba(5,8,12,0.6)',
+            display: 'flex',              // Flex layout for safe vertical centering
+            alignItems: 'center',
+            justifyContent: 'center',     // Anchor horizontal center
+            padding: '5vh 16px',          // Give some breathing room
+            overflowY: 'auto'             // Make the background itself scrollable
           }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             className="cl-card"
-            style={{ width: 'min(540px, 100%)', padding: '18px 20px' }}
+            style={{
+              width: 'min(540px, 100%)',
+              margin: 'auto',             // Centers vertically when height allows
+              maxHeight: '85vh',          // Prevents the modal from spanning screen entirely
+              overflowY: 'auto',
+              padding: '18px 20px',
+            }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--cl-text)' }}>Edit patient</p>
@@ -812,7 +833,8 @@ export default function PatientsPage() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
+      {/* ── END MODAL FIX ──────────────────────────────────────────────── */}
     </div>
   )
 }

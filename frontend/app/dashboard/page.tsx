@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { supabase, Patient, RiskTier } from "@/lib/supabase";
 import {
   AreaChart,
@@ -470,7 +471,7 @@ function RegistryPatientModal({
   return (
     <div
       onClick={onClose}
-      className="modal-overlay-enter"
+      className="modal-overlay-enter clinical"
       style={{
         position: "fixed",
         inset: 0,
@@ -481,7 +482,7 @@ function RegistryPatientModal({
         alignItems: "center",
         justifyContent: "center",
         padding: 16,
-        overflow: "hidden",
+        overflowY: "auto",
       }}
     >
       <div
@@ -757,6 +758,7 @@ export default function Dashboard() {
   });
 
   return (
+    <>
     <div
       className="clinical"
       style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
@@ -1311,12 +1313,17 @@ export default function Dashboard() {
       </main>
 
       <ClinicalFooter />
-      {registryOpen && registrySelected && (
+    </div>
+    {registryOpen &&
+      registrySelected &&
+      typeof document !== "undefined" &&
+      createPortal(
         <RegistryPatientModal
           patient={registrySelected}
           onClose={() => setRegistryOpen(false)}
-        />
+        />,
+        document.body,
       )}
-    </div>
+    </>
   );
 }

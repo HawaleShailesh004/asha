@@ -191,3 +191,4 @@ def get_checkin_history(phone: str, last_n: int = 8) -> list:
     )
     result = _execute_with_retry(result)
     return list(reversed(result.data or []))
+

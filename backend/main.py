@@ -88,12 +88,12 @@ def _are_models_ready() -> bool:
 # ── Startup ───────────────────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Boot fast for PaaS health checks; load heavy models in background.
+    # Boot fast for PaaS health checks; do not load heavy models at startup.
+    # Models are lazy-loaded on first ML-dependent request.
     app.state.symptom_mapper = None
     app.state.cervical_model = None
     app.state.pii_scrubber = None
-    log.info("ASHA starting up — binding server, model load deferred")
-    _start_model_loader(app)
+    log.info("ASHA starting up — binding server, model load is lazy")
     yield
     log.info("ASHA shutting down")
 
@@ -120,6 +120,11 @@ async def health():
         "models_loading": _models_loading,
         "ts": datetime.utcnow().isoformat(),
     }
+
+
+@app.get("/")
+async def root():
+    return {"status": "ok", "service": "asha", "models_ready": _are_models_ready()}
 
 
 # ── Webhook ───────────────────────────────────────────────────────────────────

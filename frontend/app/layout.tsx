@@ -4,6 +4,11 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'ASHA - Cancer Screening for Community Health Workers',
   description: 'Adaptive Survivorship & Health Agent - WhatsApp-native cancer screening and survivorship support for CHWs in Africa and South Asia. WHO Protocol Aligned.',
+  icons: {
+    icon: '/asha-mark.svg',
+    shortcut: '/asha-mark.svg',
+    apple: '/asha-mark.svg',
+  },
   openGraph: {
     title: 'ASHA - Cancer Screening for Community Health Workers',
     description: '342,000 women will die of cervical cancer this year. 90% within reach of a CHW who had no tools. Until now.',
