@@ -9,10 +9,12 @@ interface ClinicalHeaderProps {
 }
 
 const NAV = [
+  { href: '/',              label: 'Home'         },
   { href: '/dashboard',    label: 'Dashboard'    },
   { href: '/patients',     label: 'Patients'     },
   { href: '/survivorship', label: 'Survivorship' },
   { href: '/screen',       label: 'Screen'       },
+  { href: '/chat',         label: 'Chat'         },
 ]
 
 export default function ClinicalHeader({ rightSlot }: ClinicalHeaderProps) {

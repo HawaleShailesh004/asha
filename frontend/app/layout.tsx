@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import GlobalTopNav from '@/components/GlobalTopNav'
 
 export const metadata: Metadata = {
   title: 'ASHA - Cancer Screening for Community Health Workers',
@@ -28,7 +29,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </head>
-      <body>{children}</body>
+      <body>
+        <GlobalTopNav />
+        {children}
+      </body>
     </html>
   )
 }
