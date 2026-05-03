@@ -1,4 +1,5 @@
 const DEFAULT_BACKEND = 'http://127.0.0.1:8000'
+const PRODUCTION_FALLBACK_BACKEND = 'https://asha-production-7e1d.up.railway.app'
 const HEALTH_PATH = '/health'
 const HEALTH_TIMEOUT_MS = 7000
 
@@ -38,7 +39,7 @@ export function getBackendBases(): string[] {
   if (deduped.length) return deduped
 
   const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1'
-  return isProduction ? [] : [DEFAULT_BACKEND]
+  return isProduction ? [PRODUCTION_FALLBACK_BACKEND] : [DEFAULT_BACKEND]
 }
 
 async function probeBackend(base: string): Promise<string> {
