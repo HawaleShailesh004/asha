@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
-import { supabase, Patient, RiskTier } from "@/lib/supabase";
+import { Patient, RiskTier } from "@/lib/supabase";
 import {
   AreaChart,
   Area,
@@ -659,6 +659,7 @@ export default function Dashboard() {
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [lastSync, setLastSync] = useState(0);
   const [registrySelected, setRegistrySelected] = useState<Patient | null>(
     null,
@@ -676,17 +677,31 @@ export default function Dashboard() {
   }, [registryOpen]);
 
   const fetchPatients = useCallback(async () => {
-    const { data } = await supabase
-      .from("patients")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(200);
-    if (data) {
-      setPatients(data as Patient[]);
+    try {
+      const res = await fetch("/api/patients?limit=200", { cache: "no-store" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.detail || data?.error || "Failed to load patients");
+
+      const nextPatients = (data || []) as Patient[];
+      setPatients((prev) => {
+        const prevIds = new Set(prev.map((p) => p.id));
+        const fresh = nextPatients.filter((p) => !prevIds.has(p.id)).map((p) => p.id);
+        if (fresh.length) {
+          setNewIds(new Set(fresh));
+          setTimeout(() => setNewIds(new Set()), 10000);
+        }
+        return nextPatients;
+      });
       syncRef.current = Date.now();
       setLastSync(0);
+      setConnected(true);
+      setError(null);
+    } catch (err) {
+      setConnected(false);
+      setError(err instanceof Error ? err.message : "Unable to sync patient data.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   // Sync timer
@@ -699,32 +714,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchPatients();
-    const ch = supabase
-      .channel("asha_dashboard_live")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "patients" },
-        (payload) => {
-          const p = payload.new as Patient;
-          setPatients((prev) => [p, ...prev]);
-          setNewIds((prev) => new Set([...prev, p.id]));
-          syncRef.current = Date.now();
-          setLastSync(0);
-          setTimeout(
-            () =>
-              setNewIds((prev) => {
-                const n = new Set(prev);
-                n.delete(p.id);
-                return n;
-              }),
-            10000,
-          );
-        },
-      )
-      .subscribe((s) => setConnected(s === "SUBSCRIBED"));
-    return () => {
-      supabase.removeChannel(ch);
-    };
+    const poll = setInterval(fetchPatients, 15000);
+    return () => clearInterval(poll);
   }, [fetchPatients]);
 
   // Derived stats
@@ -801,6 +792,21 @@ export default function Dashboard() {
           width: "100%",
         }}
       >
+        {error && (
+          <div
+            style={{
+              marginBottom: 16,
+              padding: "10px 12px",
+              borderRadius: 10,
+              background: "var(--cl-high-bg)",
+              border: "1px solid var(--cl-high-border)",
+              color: "var(--cl-high)",
+              fontSize: 12,
+            }}
+          >
+            Data sync issue: {error}
+          </div>
+        )}
         {/* ── Impact bar ─────────────────────────────────────────────────── */}
         {!loading && total > 0 && (
           <div

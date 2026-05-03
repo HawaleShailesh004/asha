@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { AlertTriangle, HeartPulse, CheckCircle2, Pencil, Trash2, Plus, X } from 'lucide-react'
 import ClinicalHeader from '@/components/ClinicalHeader'
 import ClinicalFooter from '@/components/ClinicalFooter'
@@ -724,29 +723,27 @@ export default function SurvivorshipPage() {
   const [checkinSymptoms, setCheckinSymptoms] = useState('none')
   const [checkinAlert, setCheckinAlert] = useState<'STABLE' | 'ESCALATE'>('STABLE')
   const [checkinProtocol, setCheckinProtocol] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase
-        .from('survivorship_cohort').select('*')
-        .order('created_at', { ascending: false })
+      try {
+        const res = await fetch('/api/survivorship', { cache: 'no-store' })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data?.detail || data?.error || 'Failed to load survivorship data')
 
-      if (data) {
-        setSurvivors(data as Survivor[])
-        const map: Record<string, Checkin[]> = {}
-        for (const s of data) {
-          const { data: cd } = await supabase
-            .from('survivorship_checkins').select('*')
-            .eq('survivor_phone', s.phone)
-            .order('week_number', { ascending: true })
-          if (cd) map[s.phone] = cd as Checkin[]
-        }
-        setCheckins(map)
-        // Auto-select the strongest demo/useful record: most check-ins first.
-        const best = chooseBestDefaultSurvivor(data as Survivor[], map)
+        const survivorsList = (data?.survivors || []) as Survivor[]
+        const checkinMap = (data?.checkins || {}) as Record<string, Checkin[]>
+        setSurvivors(survivorsList)
+        setCheckins(checkinMap)
+        const best = chooseBestDefaultSurvivor(survivorsList, checkinMap)
         if (best) setSelected(best)
+        setError(null)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unable to load survivorship data.')
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
     load()
   }, [])
@@ -769,47 +766,58 @@ export default function SurvivorshipPage() {
     }
     if (!payload.phone) return
 
-    if (editingSurvivor) {
-      const { data, error } = await supabase
-        .from('survivorship_cohort')
-        .update(payload)
-        .eq('id', editingSurvivor.id)
-        .select('*')
-        .single()
-      if (error || !data) return
-      const updated = data as Survivor
-      setSurvivors(prev => prev.map(s => s.id === updated.id ? updated : s))
-      if (selected?.id === updated.id) setSelected(updated)
-    } else {
-      const { data, error } = await supabase
-        .from('survivorship_cohort')
-        .insert({ ...payload, checkin_week: 0 })
-        .select('*')
-        .single()
-      if (error || !data) return
-      const created = data as Survivor
-      setSurvivors(prev => [created, ...prev])
-      setSelected(created)
-      setCheckins(prev => ({ ...prev, [created.phone]: [] }))
+    try {
+      if (editingSurvivor) {
+        const res = await fetch(`/api/survivorship/survivor/${encodeURIComponent(editingSurvivor.phone)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data?.detail || data?.error || 'Failed to update survivor')
+        const updated = data as Survivor
+        setSurvivors(prev => prev.map(s => s.phone === updated.phone ? updated : s))
+        if (selected?.phone === updated.phone) setSelected(updated)
+      } else {
+        const res = await fetch('/api/survivorship/survivor', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payload, checkin_week: 0 }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data?.detail || data?.error || 'Failed to create survivor')
+        const created = data as Survivor
+        setSurvivors(prev => [created, ...prev])
+        setSelected(created)
+        setCheckins(prev => ({ ...prev, [created.phone]: [] }))
+      }
+      setEditingSurvivor(undefined)
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to save survivor details.')
     }
-    setEditingSurvivor(undefined)
   }
 
   async function deleteSurvivor(survivor: Survivor) {
     const ok = window.confirm(`Delete ${survivor.name || survivor.phone} and all related check-ins?`)
     if (!ok) return
 
-    await supabase.from('survivorship_checkins').delete().eq('survivor_phone', survivor.phone)
-    const { error } = await supabase.from('survivorship_cohort').delete().eq('id', survivor.id)
-    if (error) return
+    try {
+      const res = await fetch(`/api/survivorship/survivor/${encodeURIComponent(survivor.phone)}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.detail || data?.error || 'Failed to delete survivor')
 
-    setSurvivors(prev => prev.filter(s => s.id !== survivor.id))
-    setCheckins(prev => {
-      const next = { ...prev }
-      delete next[survivor.phone]
-      return next
-    })
-    if (selected?.id === survivor.id) setSelected(null)
+      setSurvivors(prev => prev.filter(s => s.phone !== survivor.phone))
+      setCheckins(prev => {
+        const next = { ...prev }
+        delete next[survivor.phone]
+        return next
+      })
+      if (selected?.phone === survivor.phone) setSelected(null)
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to delete survivor.')
+    }
   }
 
   async function addCheckin() {
@@ -825,23 +833,39 @@ export default function SurvivorshipPage() {
       trajectory_alert: checkinAlert,
       protocol_sent: checkinProtocol.trim() || null,
     }
-    const { data, error } = await supabase.from('survivorship_checkins').insert(payload).select('*').single()
-    if (error || !data) return
-    const created = data as Checkin
-    setCheckins(prev => ({ ...prev, [selected.phone]: [...(prev[selected.phone] || []), created] }))
-    setAddingCheckin(false)
+    try {
+      const res = await fetch('/api/survivorship/checkin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.detail || data?.error || 'Failed to add check-in')
+      const created = data as Checkin
+      setCheckins(prev => ({ ...prev, [selected.phone]: [...(prev[selected.phone] || []), created] }))
+      setAddingCheckin(false)
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to add weekly check-in.')
+    }
   }
 
   async function deleteCheckin(id: string) {
     if (!selected) return
     const ok = window.confirm('Delete this weekly check-in entry?')
     if (!ok) return
-    const { error } = await supabase.from('survivorship_checkins').delete().eq('id', id)
-    if (error) return
-    setCheckins(prev => ({
-      ...prev,
-      [selected.phone]: (prev[selected.phone] || []).filter(c => c.id !== id),
-    }))
+    try {
+      const res = await fetch(`/api/survivorship/checkin/${encodeURIComponent(id)}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.detail || data?.error || 'Failed to delete check-in')
+      setCheckins(prev => ({
+        ...prev,
+        [selected.phone]: (prev[selected.phone] || []).filter(c => c.id !== id),
+      }))
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to delete check-in entry.')
+    }
   }
 
   const selectedCheckins = selected ? (checkins[selected.phone] || []) : []
@@ -894,6 +918,19 @@ export default function SurvivorshipPage() {
       />
 
       <main className="motion-enter motion-enter-slow" style={{ flex: 1, maxWidth: 1280, margin: '0 auto', padding: '24px', width: '100%' }}>
+        {error && (
+          <div style={{
+            marginBottom: 14,
+            padding: '10px 12px',
+            borderRadius: 10,
+            background: 'var(--cl-high-bg)',
+            border: '1px solid var(--cl-high-border)',
+            color: 'var(--cl-high)',
+            fontSize: 12,
+          }}>
+            Data operation failed: {error}
+          </div>
+        )}
         {loading ? (
           <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 16 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

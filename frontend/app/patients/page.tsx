@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { supabase, Patient, RiskTier } from "@/lib/supabase";
+import { Patient, RiskTier } from "@/lib/supabase";
 import {
   ArrowUpRight,
   Leaf,
@@ -725,11 +725,12 @@ function DetailPanel({ patient }: { patient: Patient | null }) {
           <button
             className="motion-pressable"
             onClick={async () => {
-              await supabase
-                .from("patients")
-                .update({ referral_generated: true })
-                .eq("id", patient.id);
-              window.location.reload();
+              const res = await fetch(`/api/patients/${patient.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ referral_generated: true }),
+              });
+              if (res.ok) window.location.reload();
             }}
             style={{
               width: "100%",
@@ -820,6 +821,7 @@ export default function PatientsPage() {
   const [deletingPatientId, setDeletingPatientId] = useState<string | null>(
     null,
   );
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!editingPatient) return;
@@ -830,17 +832,23 @@ export default function PatientsPage() {
     };
   }, [editingPatient]);
 
-  useEffect(() => {
-    supabase
-      .from("patients")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(200)
-      .then(({ data }) => {
-        if (data) setPatients(data as Patient[]);
-        setLoading(false);
-      });
+  const loadPatients = useCallback(async () => {
+    try {
+      const res = await fetch("/api/patients?limit=200", { cache: "no-store" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.detail || data?.error || "Failed to load patients");
+      setPatients((data || []) as Patient[]);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load patient records.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadPatients();
+  }, [loadPatients]);
 
   // Auto-select most urgent on load
   useEffect(() => {
@@ -874,33 +882,44 @@ export default function PatientsPage() {
       top_risk_factors: topFactors,
     };
 
-    const { error } = await supabase
-      .from("patients")
-      .update(payload)
-      .eq("id", editingPatient.id);
-    if (error) return;
+    try {
+      const res = await fetch(`/api/patients/${editingPatient.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.detail || data?.error || "Failed to save patient");
 
-    setPatients((prev) =>
-      prev.map((p) => (p.id === editingPatient.id ? { ...p, ...payload } : p)),
-    );
-    setSelected((prev) =>
-      prev?.id === editingPatient.id ? { ...prev, ...payload } : prev,
-    );
-    setEditingPatient(null);
+      setPatients((prev) =>
+        prev.map((p) => (p.id === editingPatient.id ? { ...p, ...(data as Patient) } : p)),
+      );
+      setSelected((prev) =>
+        prev?.id === editingPatient.id ? { ...prev, ...(data as Patient) } : prev,
+      );
+      setEditingPatient(null);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save patient changes.");
+    }
   }
 
   async function deletePatient(patient: Patient) {
     const ok = window.confirm("Delete this patient record permanently?");
     if (!ok) return;
     setDeletingPatientId(patient.id);
-    const { error } = await supabase
-      .from("patients")
-      .delete()
-      .eq("id", patient.id);
-    setDeletingPatientId(null);
-    if (error) return;
-    setPatients((prev) => prev.filter((p) => p.id !== patient.id));
-    if (selected?.id === patient.id) setSelected(null);
+    try {
+      const res = await fetch(`/api/patients/${patient.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.detail || data?.error || "Failed to delete patient");
+      setPatients((prev) => prev.filter((p) => p.id !== patient.id));
+      if (selected?.id === patient.id) setSelected(null);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete patient.");
+    } finally {
+      setDeletingPatientId(null);
+    }
   }
 
   const filtered = patients.filter((p) => {
@@ -993,6 +1012,20 @@ export default function PatientsPage() {
           gap: 16,
         }}
       >
+        {error && (
+          <div
+            style={{
+              padding: "10px 12px",
+              borderRadius: 10,
+              background: "var(--cl-high-bg)",
+              border: "1px solid var(--cl-high-border)",
+              color: "var(--cl-high)",
+              fontSize: 12,
+            }}
+          >
+            Data operation failed: {error}
+          </div>
+        )}
         {/* Search + filters */}
         <div
           style={{

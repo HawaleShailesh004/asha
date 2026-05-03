@@ -524,6 +524,148 @@ async def api_regional_risk():
     import services.supabase_service as db
     return db.get_regional_risk_table()
 
+
+@app.put("/api/patients/{patient_id}")
+async def api_update_patient(patient_id: str, request: Request):
+    import services.supabase_service as db
+    try:
+        payload = await request.json()
+    except Exception:
+        return JSONResponse({"error": "invalid JSON body"}, status_code=400)
+
+    allowed = {"age", "risk_tier", "referral_generated", "top_risk_factors"}
+    updates = {k: v for k, v in payload.items() if k in allowed}
+    if not updates:
+        return JSONResponse({"error": "no valid fields to update"}, status_code=400)
+
+    try:
+        row = db.update_patient(patient_id, updates)
+        if not row:
+            return JSONResponse({"error": "patient not found"}, status_code=404)
+        return row
+    except Exception as e:
+        log.error("api_update_patient error: %s", e)
+        return JSONResponse({"error": "failed to update patient", "detail": str(e)}, status_code=500)
+
+
+@app.delete("/api/patients/{patient_id}")
+async def api_delete_patient(patient_id: str):
+    import services.supabase_service as db
+    try:
+        db.delete_patient(patient_id)
+        return {"ok": True, "id": patient_id}
+    except Exception as e:
+        log.error("api_delete_patient error: %s", e)
+        return JSONResponse({"error": "failed to delete patient", "detail": str(e)}, status_code=500)
+
+
+@app.get("/api/survivorship")
+async def api_survivorship():
+    import services.supabase_service as db
+    try:
+        survivors = db.get_all_survivors()
+        checkins = {s.get("phone", ""): db.get_checkins_for_survivor(s.get("phone", "")) for s in survivors if s.get("phone")}
+        return {"survivors": survivors, "checkins": checkins}
+    except Exception as e:
+        log.error("api_survivorship error: %s", e)
+        return JSONResponse({"error": "failed to load survivorship data", "detail": str(e)}, status_code=500)
+
+
+@app.post("/api/survivorship/survivor")
+async def api_create_survivor(request: Request):
+    import services.supabase_service as db
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "invalid JSON body"}, status_code=400)
+
+    phone = str(body.get("phone", "")).strip()
+    if not phone:
+        return JSONResponse({"error": "phone is required"}, status_code=400)
+
+    payload = {
+        "phone": phone,
+        "name": body.get("name"),
+        "cancer_type": body.get("cancer_type"),
+        "chw_phone": body.get("chw_phone"),
+        "checkin_week": int(body.get("checkin_week", 0) or 0),
+    }
+    try:
+        created = db.create_survivor(payload)
+        return created or {"ok": True}
+    except Exception as e:
+        log.error("api_create_survivor error: %s", e)
+        return JSONResponse({"error": "failed to create survivor", "detail": str(e)}, status_code=500)
+
+
+@app.put("/api/survivorship/survivor/{phone}")
+async def api_update_survivor(phone: str, request: Request):
+    import services.supabase_service as db
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "invalid JSON body"}, status_code=400)
+
+    updates = {
+        "name": body.get("name"),
+        "cancer_type": body.get("cancer_type"),
+        "chw_phone": body.get("chw_phone"),
+    }
+    updates = {k: v for k, v in updates.items() if v is not None}
+    if not updates:
+        return JSONResponse({"error": "no valid fields to update"}, status_code=400)
+
+    try:
+        updated = db.update_survivor_by_phone(phone, updates)
+        if not updated:
+            return JSONResponse({"error": "survivor not found"}, status_code=404)
+        return updated
+    except Exception as e:
+        log.error("api_update_survivor error: %s", e)
+        return JSONResponse({"error": "failed to update survivor", "detail": str(e)}, status_code=500)
+
+
+@app.delete("/api/survivorship/survivor/{phone}")
+async def api_delete_survivor(phone: str):
+    import services.supabase_service as db
+    try:
+        db.delete_survivor_by_phone(phone)
+        return {"ok": True, "phone": phone}
+    except Exception as e:
+        log.error("api_delete_survivor error: %s", e)
+        return JSONResponse({"error": "failed to delete survivor", "detail": str(e)}, status_code=500)
+
+
+@app.post("/api/survivorship/checkin")
+async def api_create_checkin(request: Request):
+    import services.supabase_service as db
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "invalid JSON body"}, status_code=400)
+
+    survivor_phone = str(body.get("survivor_phone", "")).strip()
+    if not survivor_phone:
+        return JSONResponse({"error": "survivor_phone is required"}, status_code=400)
+
+    try:
+        created = db.create_checkin(body)
+        return created or {"ok": True}
+    except Exception as e:
+        log.error("api_create_checkin error: %s", e)
+        return JSONResponse({"error": "failed to create checkin", "detail": str(e)}, status_code=500)
+
+
+@app.delete("/api/survivorship/checkin/{checkin_id}")
+async def api_delete_checkin(checkin_id: str):
+    import services.supabase_service as db
+    try:
+        db.delete_checkin(checkin_id)
+        return {"ok": True, "id": checkin_id}
+    except Exception as e:
+        log.error("api_delete_checkin error: %s", e)
+        return JSONResponse({"error": "failed to delete checkin", "detail": str(e)}, status_code=500)
+
 @app.post("/api/chat")
 async def api_chat(request: Request):
     """

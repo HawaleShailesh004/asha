@@ -192,3 +192,80 @@ def get_checkin_history(phone: str, last_n: int = 8) -> list:
     result = _execute_with_retry(result)
     return list(reversed(result.data or []))
 
+
+def update_patient(patient_id: str, payload: dict) -> dict | None:
+    db = get_client()
+    result = (
+        db.table("patients")
+        .update(payload)
+        .eq("id", patient_id)
+        .select("*")
+        .single()
+    )
+    result = _execute_with_retry(result)
+    return result.data
+
+
+def delete_patient(patient_id: str) -> None:
+    _execute_with_retry(get_client().table("patients").delete().eq("id", patient_id))
+
+
+def get_all_survivors() -> list:
+    db = get_client()
+    result = (
+        db.table("survivorship_cohort")
+        .select("*")
+        .order("created_at", desc=True)
+    )
+    result = _execute_with_retry(result)
+    return result.data or []
+
+
+def get_checkins_for_survivor(phone: str) -> list:
+    db = get_client()
+    result = (
+        db.table("survivorship_checkins")
+        .select("*")
+        .eq("survivor_phone", phone)
+        .order("week_number", desc=False)
+    )
+    result = _execute_with_retry(result)
+    return result.data or []
+
+
+def create_survivor(payload: dict) -> dict | None:
+    db = get_client()
+    result = db.table("survivorship_cohort").insert(payload).select("*").single()
+    result = _execute_with_retry(result)
+    return result.data
+
+
+def update_survivor_by_phone(phone: str, payload: dict) -> dict | None:
+    db = get_client()
+    result = (
+        db.table("survivorship_cohort")
+        .update(payload)
+        .eq("phone", phone)
+        .select("*")
+        .single()
+    )
+    result = _execute_with_retry(result)
+    return result.data
+
+
+def delete_survivor_by_phone(phone: str) -> None:
+    db = get_client()
+    _execute_with_retry(db.table("survivorship_checkins").delete().eq("survivor_phone", phone))
+    _execute_with_retry(db.table("survivorship_cohort").delete().eq("phone", phone))
+
+
+def create_checkin(payload: dict) -> dict | None:
+    db = get_client()
+    result = db.table("survivorship_checkins").insert(payload).select("*").single()
+    result = _execute_with_retry(result)
+    return result.data
+
+
+def delete_checkin(checkin_id: str) -> None:
+    _execute_with_retry(get_client().table("survivorship_checkins").delete().eq("id", checkin_id))
+
