@@ -525,6 +525,30 @@ async def api_regional_risk():
     return db.get_regional_risk_table()
 
 
+def _web_chat_phone(user_id: str) -> str:
+    """Stable session key for web chat. Accepts either 'abc' or 'web_abc' from clients."""
+    u = (user_id or "").strip()
+    if not u:
+        return ""
+    if u.startswith("web_"):
+        return u
+    return f"web_{u}"
+
+
+@app.get("/api/chat/session")
+async def api_chat_session(user_id: str):
+    """Return persisted session history for web chat resume (same store as POST /api/chat)."""
+    import services.supabase_service as db
+    phone = _web_chat_phone(user_id)
+    if not phone:
+        return JSONResponse({"error": "user_id required"}, status_code=400)
+    session = db.get_session(phone)
+    return {
+        "phase": session.get("phase", "idle"),
+        "history": session.get("history", []),
+    }
+
+
 @app.put("/api/patients/{patient_id}")
 async def api_update_patient(patient_id: str, request: Request):
     import services.supabase_service as db
@@ -728,7 +752,7 @@ async def api_chat(request: Request):
     import services.supabase_service as db
 
     # Phone prefix for web users — always English, global geography
-    phone    = f"web_{user_id}"
+    phone    = _web_chat_phone(user_id)
     session  = db.get_session(phone)
     phase    = session.get("phase", "idle")
     history  = session.get("history", [])

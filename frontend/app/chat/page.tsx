@@ -1063,6 +1063,7 @@ export default function ChatPage() {
   const [loading, setLoading] = useState(false);
   const [online, setOnline] = useState(true);
   const [userId, setUserId] = useState("");
+  const [sessionLoading, setSessionLoading] = useState(true);
   const [lowData, setLowData] = useState(false);
   const [queue, setQueue] = useState<QueuedMsg[]>([]);
   const [syncing, setSyncing] = useState(false);
@@ -1093,18 +1094,82 @@ export default function ChatPage() {
     };
   }, []);
 
-  // Welcome
+  // Hydrate from server session (auto-resume) or show fresh welcome
   useEffect(() => {
     if (!userId) return;
-    const name = localStorage.getItem("asha_name");
-    setMessages([
-      {
-        id: uid(),
-        role: "asha",
-        ts: now(),
-        text: `🌿 Welcome${name ? ", " + name : ""} to ASHA\n\nI help community health workers screen patients for cancer and support cancer survivors.\n\nTap a command to begin.`,
-      },
-    ]);
+    let cancelled = false;
+    setSessionLoading(true);
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/chat/session?user_id=${encodeURIComponent(userId)}`,
+          { cache: "no-store" },
+        );
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!res.ok) throw new Error("session unavailable");
+
+        const history = Array.isArray(data.history) ? data.history : [];
+        const name = localStorage.getItem("asha_name");
+        const welcomeFresh = `🌿 Welcome${name ? ", " + name : ""} to ASHA\n\nI help community health workers screen patients for cancer and support cancer survivors.\n\nTap a command to begin.`;
+
+        if (history.length === 0) {
+          setMessages([
+            {
+              id: uid(),
+              role: "asha",
+              ts: now(),
+              text: welcomeFresh,
+            },
+          ]);
+        } else {
+          const restored: Message[] = [
+            {
+              id: uid(),
+              role: "asha",
+              ts: now(),
+              text: `🌿 Welcome back${name ? ", " + name : ""}. Here is your conversation so far. You can keep going, or type *reset* to start fresh.`,
+            },
+          ];
+          for (const h of history) {
+            const row = h as { role?: string; content?: string };
+            const role: "user" | "asha" =
+              row.role === "user" ? "user" : "asha";
+            const content = typeof row.content === "string" ? row.content : "";
+            if (!content.trim()) continue;
+            restored.push({
+              id: uid(),
+              role,
+              text: content,
+              ts: now(),
+              options: role === "asha" ? detectOptions(content) : undefined,
+              riskResult:
+                role === "asha"
+                  ? parseRiskResult(content) || undefined
+                  : undefined,
+            });
+          }
+          setMessages(restored);
+        }
+      } catch {
+        if (!cancelled) {
+          const name = localStorage.getItem("asha_name");
+          setMessages([
+            {
+              id: uid(),
+              role: "asha",
+              ts: now(),
+              text: `🌿 Welcome${name ? ", " + name : ""} to ASHA\n\nI help community health workers screen patients for cancer and support cancer survivors.\n\nTap a command to begin.`,
+            },
+          ]);
+        }
+      } finally {
+        if (!cancelled) setSessionLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [userId]);
 
   useEffect(() => {
@@ -1113,7 +1178,7 @@ export default function ChatPage() {
 
   // Sync offline queue when back online
   useEffect(() => {
-    if (!online || queue.length === 0 || syncing) return;
+    if (!online || queue.length === 0 || syncing || sessionLoading) return;
     (async () => {
       setSyncing(true);
       const remaining: QueuedMsg[] = [];
@@ -1143,7 +1208,7 @@ export default function ChatPage() {
           ts: now(),
         });
     })();
-  }, [online]);
+  }, [online, queue.length, syncing, sessionLoading]);
 
   function addMessage(msg: Message) {
     setMessages((prev) => [...prev, msg]);
@@ -1161,6 +1226,7 @@ export default function ChatPage() {
   }
 
   async function send(text?: string) {
+    if (sessionLoading) return;
     const msg = (text || input).trim();
     if (!msg || loading) return;
     setInput("");
@@ -1207,7 +1273,7 @@ export default function ChatPage() {
 
   async function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || sessionLoading) return;
     const reader = new FileReader();
     reader.onload = async () => {
       const base64 = reader.result as string;
@@ -1247,6 +1313,7 @@ export default function ChatPage() {
   }
 
   function handleSwitch(newId: string) {
+    setSessionLoading(true);
     setUserId(newId);
     setMessages([]);
   }
@@ -1390,6 +1457,8 @@ export default function ChatPage() {
             <button
               className="motion-pressable"
               key={cmd}
+              type="button"
+              disabled={sessionLoading}
               onClick={() => send(cmd)}
               style={{
                 padding: "5px 12px",
@@ -1399,7 +1468,8 @@ export default function ChatPage() {
                 border: "1px solid rgba(0,212,160,0.18)",
                 color: "#00a884",
                 fontSize: 11,
-                cursor: "pointer",
+                cursor: sessionLoading ? "not-allowed" : "pointer",
+                opacity: sessionLoading ? 0.45 : 1,
                 fontFamily: "DM Sans, sans-serif",
                 whiteSpace: "nowrap",
               }}
@@ -1429,14 +1499,30 @@ export default function ChatPage() {
             gap: 8,
           }}
         >
-          {messages.map((msg) => (
-            <MessageBubble
-              key={msg.id}
-              msg={msg}
-              lowData={lowData}
-              onOptionClick={send}
-            />
-          ))}
+          {sessionLoading && (
+            <div style={{ display: "flex", justifyContent: "flex-start" }}>
+              <div
+                style={{
+                  background: "#1f2c34",
+                  borderRadius: "2px 14px 14px 14px",
+                  padding: "10px 16px",
+                  color: "#8696a0",
+                  fontSize: 13,
+                }}
+              >
+                Loading your conversation…
+              </div>
+            </div>
+          )}
+          {!sessionLoading &&
+            messages.map((msg) => (
+              <MessageBubble
+                key={msg.id}
+                msg={msg}
+                lowData={lowData}
+                onOptionClick={send}
+              />
+            ))}
           {loading && (
             <div style={{ display: "flex", justifyContent: "flex-start" }}>
               <div
@@ -1538,6 +1624,8 @@ export default function ChatPage() {
           <div style={{ display: "flex", gap: 7, alignItems: "flex-end" }}>
             <button
               className="motion-pressable"
+              type="button"
+              disabled={sessionLoading}
               onClick={() => setPhotoMode(!photoMode)}
               title="Photo analysis"
               style={{
@@ -1552,7 +1640,8 @@ export default function ChatPage() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                cursor: "pointer",
+                cursor: sessionLoading ? "not-allowed" : "pointer",
+                opacity: sessionLoading ? 0.45 : 1,
                 fontSize: 17,
               }}
             >
@@ -1561,6 +1650,8 @@ export default function ChatPage() {
 
             <button
               className="motion-pressable"
+              type="button"
+              disabled={sessionLoading}
               onClick={speech.listening ? speech.stop : speech.start}
               title="Voice input"
               style={{
@@ -1575,7 +1666,8 @@ export default function ChatPage() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                cursor: "pointer",
+                cursor: sessionLoading ? "not-allowed" : "pointer",
+                opacity: sessionLoading ? 0.45 : 1,
                 fontSize: 17,
               }}
             >
@@ -1591,8 +1683,13 @@ export default function ChatPage() {
                   send();
                 }
               }}
+              disabled={sessionLoading}
               placeholder={
-                speech.listening ? "Listening..." : "Type or speak..."
+                sessionLoading
+                  ? "Loading conversation…"
+                  : speech.listening
+                    ? "Listening..."
+                    : "Type or speak..."
               }
               rows={1}
               style={{
@@ -1609,21 +1706,29 @@ export default function ChatPage() {
                 lineHeight: 1.5,
                 maxHeight: 100,
                 overflowY: "auto",
+                opacity: sessionLoading ? 0.6 : 1,
               }}
             />
 
             <button
               className="motion-pressable"
+              type="button"
               onClick={() => send()}
-              disabled={loading || !input.trim()}
+              disabled={sessionLoading || loading || !input.trim()}
               style={{
                 width: 40,
                 height: 40,
                 borderRadius: 20,
                 flexShrink: 0,
-                background: !loading && input.trim() ? "#00a884" : "#2a3942",
+                background:
+                  !sessionLoading && !loading && input.trim()
+                    ? "#00a884"
+                    : "#2a3942",
                 border: "none",
-                cursor: !loading && input.trim() ? "pointer" : "default",
+                cursor:
+                  !sessionLoading && !loading && input.trim()
+                    ? "pointer"
+                    : "default",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
